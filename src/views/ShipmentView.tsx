@@ -149,11 +149,11 @@ const WireframeBox = ({ l, w, h }: { l: number; w: number; h: number }) => {
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       >
         {/* Bottom face */}
-        <polygon points={poly([pts.fl, pts.fr, pts.br, pts.bl])} fill="rgba(59,130,246,.05)" stroke="#93c5fd" strokeWidth="1" />
+        <polygon points={poly([pts.fl, pts.es, pts.br, pts.bl])} fill="rgba(59,130,246,.05)" stroke="#93c5fd" strokeWidth="1" />
         {/* Right face */}
-        <polygon points={poly([pts.fr, pts.br, pts.tbr, pts.tfr])} fill="rgba(59,130,246,.06)" stroke="#60a5fa" strokeWidth="1.2" />
+        <polygon points={poly([pts.es, pts.br, pts.tbr, pts.tfr])} fill="rgba(59,130,246,.06)" stroke="#60a5fa" strokeWidth="1.2" />
         {/* Front face */}
-        <polygon points={poly([pts.fl, pts.fr, pts.tfr, pts.tfl])} fill="rgba(59,130,246,.08)" stroke="#3b82f6" strokeWidth="1.5" />
+        <polygon points={poly([pts.fl, pts.es, pts.tfr, pts.tfl])} fill="rgba(59,130,246,.08)" stroke="#3b82f6" strokeWidth="1.5" />
         {/* Top face */}
         <polygon points={poly([pts.tfl, pts.tfr, pts.tbr, pts.tbl])} fill="rgba(59,130,246,.12)" stroke="#3b82f6" strokeWidth="1.5" />
         {/* Dimension dashes */}
@@ -223,7 +223,7 @@ const STEP_HERO = [
 // ─── Main Component ─────────────────────────────────────────────────────────────
 export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: ShipmentViewProps) {
   const { t, language } = useLanguage();
-  const fr = language === 'fr';
+  const es = language === 'es';
 
   const [step, setStep] = useState<StepId>(1);
   const [loading, setLoading] = useState(false);
@@ -265,13 +265,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
   const tryNext = useCallback(() => {
     if (step === 1) {
       if (!senderName.trim() || !origin.trim() || !dest.trim()) {
-        setError(fr ? 'Remplissez les champs requis (nom, origine, destination).' : 'Fill in the required fields (name, origin, destination).');
+        setError(es ? 'Remplissez les champs requis (nom, origine, destination).' : 'Fill in the required fields (name, origin, destination).');
         return;
       }
     }
     setError(null);
     goTo((step + 1) as StepId);
-  }, [step, senderName, origin, dest, fr, goTo]);
+  }, [step, senderName, origin, dest, es, goTo]);
 
   const handleBack = useCallback(() => {
     if (step > 1) goTo((step - 1) as StepId);
@@ -280,7 +280,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!value) { setError(fr ? 'Valeur déclarée requise.' : 'Declared value required.'); return; }
+    if (!value) { setError(es ? 'Valeur déclarée requise.' : 'Declared value required.'); return; }
     setLoading(true);
     setError(null);
 
@@ -293,9 +293,9 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
         session_id: sessionId,
         origin,
         dest,
-        date: includeETA ? new Date(estimatedArrival).toLocaleDateString(fr ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null,
+        date: includeETA ? new Date(estimatedArrival).toLocaleDateString(es ? 'es-ES' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null,
         status: 'Pending',
-        value: fr ? `€${Number(value).toLocaleString('fr-FR')}` : `$${Number(value).toLocaleString('en-US')}`,
+        value: es ? `€${Number(value).toLocaleString('es-ES')}` : `$${Number(value).toLocaleString('en-US')}`,
         driver: drivers[Math.floor(Math.random() * drivers.length)],
         progress: 0,
         vehicle_type: vehicleType,
@@ -315,14 +315,14 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
       setSubmitted(true);
       setTimeout(() => onShipmentCreated(trackingId), 1200);
     } catch (err: any) {
-      setError(fr ? 'Erreur de déploiement. Réessayez.' : 'Deployment error. Please try again.');
+      setError(es ? 'Erreur de déploiement. Réessayez.' : 'Deployment error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const hero = STEP_HERO[step - 1];
-  const vehicleLabel = vehicleType === 'ground' ? (fr ? 'Camion' : 'Truck') : vehicleType === 'air' ? (fr ? 'Avion' : 'Air') : (fr ? 'Navire' : 'Ship');
+  const vehicleLabel = vehicleType === 'ground' ? (es ? 'Camion' : 'Truck') : vehicleType === 'air' ? (es ? 'Avion' : 'Air') : (es ? 'Navire' : 'Ship');
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
@@ -383,13 +383,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                     <User className="w-3.5 h-3.5 text-blue-500" />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">
-                    {fr ? 'Informations expéditeur' : 'Sender Information'}
+                    {es ? 'Informations expéditeur' : 'Sender Information'}
                   </p>
                 </div>
                 <div className="grid gap-3">
-                  <Field label={fr ? 'Nom complet *' : 'Full Name *'} full>
+                  <Field label={es ? 'Nom complet *' : 'Full Name *'} full>
                     <FieldInput
-                      placeholder={fr ? 'Jean-Pierre Leclerc' : 'John Smith'}
+                      placeholder={es ? 'Jean-Pierre Leclerc' : 'John Smith'}
                       value={senderName}
                       onChange={e => setSenderName(e.target.value)}
                     />
@@ -398,7 +398,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                     <Field label="Email">
                       <FieldInput type="email" placeholder="contact@evri.com" value={senderEmail} onChange={e => setSenderEmail(e.target.value)} />
                     </Field>
-                    <Field label={fr ? 'Téléphone' : 'Phone'}>
+                    <Field label={es ? 'Téléphone' : 'Phone'}>
                       <FieldInput type="tel" placeholder="+33 6 00 00 00" value={senderPhone} onChange={e => setSenderPhone(e.target.value)} />
                     </Field>
                   </div>
@@ -414,15 +414,15 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                     <MapPin className="w-3.5 h-3.5 text-amber-500" />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">
-                    {fr ? 'Itinéraire' : 'Route Mapping'}
+                    {es ? 'Itinéraire' : 'Route Mapping'}
                   </p>
                 </div>
                 <div className="grid gap-3">
-                  <Field label={fr ? 'Origine *' : 'Origin *'} full>
-                    <FieldInput placeholder={fr ? 'Paris, France' : 'Chicago, IL'} value={origin} onChange={e => setOrigin(e.target.value)} />
+                  <Field label={es ? 'Origine *' : 'Origin *'} full>
+                    <FieldInput placeholder={es ? 'Paris, France' : 'Chicago, IL'} value={origin} onChange={e => setOrigin(e.target.value)} />
                   </Field>
-                  <Field label={fr ? 'Destination *' : 'Destination *'} full>
-                    <FieldInput placeholder={fr ? 'Lyon, France' : 'New York, NY'} value={dest} onChange={e => setDest(e.target.value)} />
+                  <Field label={es ? 'Destination *' : 'Destination *'} full>
+                    <FieldInput placeholder={es ? 'Lyon, France' : 'New York, NY'} value={dest} onChange={e => setDest(e.target.value)} />
                   </Field>
                 </div>
               </div>
@@ -432,12 +432,12 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               {/* Transport mode */}
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400 mb-3">
-                  {fr ? 'Mode de transport' : 'Transport Mode'}
+                  {es ? 'Mode de transport' : 'Transport Mode'}
                 </p>
                 <div className="grid grid-cols-3 gap-3">
-                  <VehicleBtn icon={Truck} label={fr ? 'Camion' : 'Truck'} active={vehicleType === 'ground'} onClick={() => setVehicleType('ground')} />
-                  <VehicleBtn icon={Plane} label={fr ? 'Avion' : 'Air'} active={vehicleType === 'air'} onClick={() => setVehicleType('air')} />
-                  <VehicleBtn icon={Ship} label={fr ? 'Navire' : 'Ship'} active={vehicleType === 'sea'} onClick={() => setVehicleType('sea')} />
+                  <VehicleBtn icon={Truck} label={es ? 'Camion' : 'Truck'} active={vehicleType === 'ground'} onClick={() => setVehicleType('ground')} />
+                  <VehicleBtn icon={Plane} label={es ? 'Avion' : 'Air'} active={vehicleType === 'air'} onClick={() => setVehicleType('air')} />
+                  <VehicleBtn icon={Ship} label={es ? 'Navire' : 'Ship'} active={vehicleType === 'sea'} onClick={() => setVehicleType('sea')} />
                 </div>
               </div>
 
@@ -452,7 +452,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                 onClick={tryNext}
                 className="w-full h-14 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-[.2em] flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[.98] transition-all shadow-lg shadow-blue-500/25"
               >
-                {fr ? 'Continuer' : 'Continue'}
+                {es ? 'Continuer' : 'Continue'}
                 <Zap className="w-4 h-4" />
               </button>
             </motion.div>
@@ -474,13 +474,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               {/* Weight + type */}
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400 mb-3">
-                  {fr ? 'Composition du cargo' : 'Cargo Composition'}
+                  {es ? 'Composition du cargo' : 'Cargo Composition'}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={fr ? 'Poids (kg)' : 'Weight (kg)'}>
+                  <Field label={es ? 'Poids (kg)' : 'Weight (kg)'}>
                     <FieldInput type="number" value={weight} onChange={e => setWeight(e.target.value)} />
                   </Field>
-                  <Field label={fr ? 'Type' : 'Cargo Type'}>
+                  <Field label={es ? 'Type' : 'Cargo Type'}>
                     <div className="relative">
                       <select
                         value={cargoType}
@@ -500,7 +500,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               {/* Dimensions */}
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400 mb-3">
-                  {fr ? 'Dimensions (cm)' : 'Dimensions (cm)'}
+                  {es ? 'Dimensions (cm)' : 'Dimensions (cm)'}
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {[
@@ -525,13 +525,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                   onClick={() => goTo(1)}
                   className="col-span-2 h-12 rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-wider hover:bg-slate-100 transition-colors"
                 >
-                  ← {fr ? 'Retour' : 'Back'}
+                  ← {es ? 'Retour' : 'Back'}
                 </button>
                 <button
                   onClick={tryNext}
                   className="col-span-3 h-12 rounded-2xl bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[.98] transition-all"
                 >
-                  {fr ? 'Analyser' : 'Analyse & Proceed'}
+                  {es ? 'Analyser' : 'Analyse & Proceed'}
                   <Zap className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -552,12 +552,12 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               {/* Summary */}
               <div className="bg-gradient-to-br from-slate-50 to-blue-50 border border-blue-100 rounded-2xl p-4 space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400 mb-2">
-                  {fr ? 'Récapitulatif' : 'Shipment Summary'}
+                  {es ? 'Récapitulatif' : 'Shipment Summary'}
                 </p>
                 {[
-                  { key: fr ? 'Itinéraire' : 'Route', val: `${origin} → ${dest}` },
-                  { key: fr ? 'Transport' : 'Transport', val: vehicleLabel },
-                  { key: fr ? 'Cargo' : 'Cargo', val: `${weight} kg · ${volume}L` },
+                  { key: es ? 'Itinéraire' : 'Route', val: `${origin} → ${dest}` },
+                  { key: es ? 'Transport' : 'Transport', val: vehicleLabel },
+                  { key: es ? 'Cargo' : 'Cargo', val: `${weight} kg · ${volume}L` },
                 ].map(row => (
                   <div key={row.key} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{row.key}</span>
@@ -573,13 +573,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[.18em] text-slate-400">
-                    {fr ? 'Priorité de transit' : 'Transit Priority'}
+                    {es ? 'Priorité de transit' : 'Transit Priority'}
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-2.5">
-                  <PriorityBtn label={fr ? 'Standard' : 'Standard'} desc={fr ? '3–7 jours' : '3–7 days'} active={priority === 'Standard'} variant="green" onClick={() => setPriority('Standard')} />
-                  <PriorityBtn label={fr ? 'Priorité' : 'Priority'} desc={fr ? '1–2 jours' : '1–2 days'} active={priority === 'Priority'} variant="amber" onClick={() => setPriority('Priority')} />
-                  <PriorityBtn label={fr ? 'Critique' : 'Critical'} desc={fr ? 'Jour J' : 'Same day'} active={priority === 'Critical'} variant="red" onClick={() => setPriority('Critical')} />
+                  <PriorityBtn label={es ? 'Standard' : 'Standard'} desc={es ? '3–7 jours' : '3–7 days'} active={priority === 'Standard'} variant="green" onClick={() => setPriority('Standard')} />
+                  <PriorityBtn label={es ? 'Priorité' : 'Priority'} desc={es ? '1–2 jours' : '1–2 days'} active={priority === 'Priority'} variant="amber" onClick={() => setPriority('Priority')} />
+                  <PriorityBtn label={es ? 'Critique' : 'Critical'} desc={es ? 'Jour J' : 'Same day'} active={priority === 'Critical'} variant="red" onClick={() => setPriority('Critical')} />
                 </div>
               </div>
 
@@ -587,8 +587,8 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
                   <div>
-                    <p className="text-sm font-bold text-slate-800">{fr ? 'Matières dangereuses' : 'Hazardous Materials'}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{fr ? 'Documentation requise' : 'Compliance documentation required'}</p>
+                    <p className="text-sm font-bold text-slate-800">{es ? 'Matières dangereuses' : 'Hazardous Materials'}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{es ? 'Documentation requise' : 'Compliance documentation required'}</p>
                   </div>
                   <Toggle on={hazardous} onChange={() => setHazardous(h => !h)} danger />
                 </div>
@@ -597,8 +597,8 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                   <div className="flex items-center gap-2.5">
                     <Calendar className="w-4 h-4 text-blue-400 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-bold text-slate-800">{fr ? 'Date d\'arrivée estimée' : 'Include Estimated Arrival'}</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{fr ? 'Optionnel' : 'Optional'}</p>
+                      <p className="text-sm font-bold text-slate-800">{es ? 'Date d\'arrivée estimée' : 'Include Estimated Arrival'}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{es ? 'Optionnel' : 'Optional'}</p>
                     </div>
                   </div>
                   <Toggle on={includeETA} onChange={() => setIncludeETA(v => !v)} />
@@ -613,7 +613,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                       className="overflow-hidden"
                     >
                       <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1.5">{fr ? 'Date estimée' : 'Estimated Date'}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400 mb-1.5">{es ? 'Date estimée' : 'Estimated Date'}</p>
                         <input
                           type="date"
                           value={estimatedArrival}
@@ -629,7 +629,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
               {/* Value */}
               <div className="border-2 border-slate-200 rounded-2xl px-5 py-4 focus-within:border-blue-400 focus-within:shadow-[0_0_0_3px_rgba(30,136,200,.1)] transition-all">
                 <p className="text-[10px] font-black uppercase tracking-[.16em] text-slate-400 mb-2">
-                  {fr ? 'Valeur déclarée' : 'Declared Value'}
+                  {es ? 'Valeur déclarée' : 'Declared Value'}
                 </p>
                 <div className="flex items-baseline gap-2">
                   <Euro className="w-7 h-7 text-slate-300 flex-shrink-0" />
@@ -666,11 +666,11 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                   />
                 )}
                 {loading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" />{fr ? 'Déploiement…' : 'Deploying…'}</>
+                  <><Loader2 className="w-5 h-5 animate-spin" />{es ? 'Déploiement…' : 'Deploying…'}</>
                 ) : submitted ? (
-                  <><CheckCircle className="w-5 h-5" />{fr ? 'Expédition créée !' : 'Shipment Created!'}</>
+                  <><CheckCircle className="w-5 h-5" />{es ? 'Expédition créée !' : 'Shipment Created!'}</>
                 ) : (
-                  <><ShieldCheck className="w-5 h-5" />{fr ? 'Initier le déploiement' : 'Initiate Deployment'}</>
+                  <><ShieldCheck className="w-5 h-5" />{es ? 'Initier le déploiement' : 'Initiate Deployment'}</>
                 )}
               </button>
 
@@ -679,7 +679,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                 onClick={() => goTo(2)}
                 className="w-full text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-blue-500 transition-colors py-2"
               >
-                ← {fr ? 'Retour au cargo' : 'Back to Cargo'}
+                ← {es ? 'Retour au cargo' : 'Back to Cargo'}
               </button>
             </motion.form>
           )}
@@ -689,3 +689,4 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
     </div>
   );
 }
+

@@ -36,11 +36,11 @@ export function SettingsView({ onNavigate }: { onNavigate: (page: Page) => void 
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setLanguage(language === 'en' ? 'fr' : 'en');
+                                        setLanguage(language === 'en' ? 'es' : 'en');
                                     }}
                                     className="text-xs font-bold text-slate-400 hover:text-white transition-colors"
                                 >
-                                    {language === 'en' ? 'English (EN)' : 'Français (FR)'}
+                                    {language === 'en' ? 'English (EN)' : 'Español (ES)'}
                                 </button>
                             }
                             onClick={() => { }}
@@ -95,3 +95,5 @@ function SettingRow({ icon, label, desc, action, onClick }: any) {
 
     return isInteractive ? <div onClick={onClick} className="block">{content}</div> : content;
 }
+
+

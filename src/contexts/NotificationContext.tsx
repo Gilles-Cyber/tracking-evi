@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+﻿import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle, Info, X, Bell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -36,7 +36,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const fetchUnreadCount = useCallback(async () => {
     const isAdmin = localStorage.getItem('gxn_admin') === 'true';
-    let query = supabase.from('support_messages').select('id', { count: 'exact' }).eq('is_read', false);
+    let query = supabase
+      .from('support_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_read', false);
     if (isAdmin) {
       query = query.eq('sender_type', 'user');
     } else {
@@ -50,22 +53,43 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     fetchUnreadCount();
     const channel = supabase
       .channel('global_notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, (payload) => {
         const isAdmin = localStorage.getItem('gxn_admin') === 'true';
         const msg = payload.new;
+        fetchUnreadCount();
+        if (!msg) return;
         if (isAdmin && msg.sender_type === 'user') {
-          setUnreadCount(prev => prev + 1);
-          notify('info', 'Nouveau Message', 'Un utilisateur a envoyé un message.');
+          notify('info', 'Nouveau Message', 'Un utilisateur a envoyÃ© un message.');
         } else if (!isAdmin && msg.sender_type === 'admin' && msg.session_id === getSessionId()) {
-          setUnreadCount(prev => prev + 1);
-          notify('info', 'Réponse Support', "L'administrateur vous a répondu.");
+          notify('info', 'RÃ©ponse Support', "L'administrateur vous a rÃ©pondu.");
         }
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(fetchUnreadCount, 10000);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [fetchUnreadCount, notify]);
 
-  const clearUnread = () => setUnreadCount(0);
+  const clearUnread = async () => {
+    const isAdmin = localStorage.getItem('gxn_admin') === 'true';
+    if (isAdmin) {
+      await supabase
+        .from('support_messages')
+        .update({ is_read: true })
+        .eq('sender_type', 'user')
+        .eq('is_read', false);
+    } else {
+      await supabase
+        .from('support_messages')
+        .update({ is_read: true })
+        .eq('sender_type', 'admin')
+        .eq('session_id', getSessionId())
+        .eq('is_read', false);
+    }
+    setUnreadCount(0);
+  };
 
   const remove = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -137,3 +161,4 @@ export function useNotification() {
   if (!context) throw new Error('useNotification must be used within NotificationProvider');
   return context;
 }
+

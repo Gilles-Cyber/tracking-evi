@@ -62,7 +62,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
             label: t(activeShipment.status.toLowerCase() as any) || activeShipment.status,
             title: t('at_facility_desc'),
             subtitle: activeShipment.origin,
-            time: new Date().toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+            time: new Date().toLocaleString(language === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }),
             status: 'active',
             icon: activeShipment.vehicle_type === 'air' ? <Plane className="w-5 h-5 text-white" /> : activeShipment.vehicle_type === 'sea' ? <Ship className="w-5 h-5 text-white" /> : <Truck className="w-5 h-5 text-white" />,
         },
@@ -71,7 +71,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
             title: t('scheduled_delivery_date'),
             subtitle: activeShipment.dest,
             time: activeShipment.estimated_arrival 
-                ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'long' })
+                ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'long' })
                 : activeShipment.date || t('pending'),
             status: 'pending',
             icon: <MapPin className="w-5 h-5 text-white" />,
@@ -117,7 +117,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                         className="p-2 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim flex items-center gap-1.5"
                     >
                         <Globe className="w-5 h-5 text-blue-500" />
-                        <span className="text-[10px] font-bold uppercase hidden md:block">{language === 'en' ? 'FR' : 'EN'}</span>
+                        <span className="text-[10px] font-bold uppercase hidden md:block">{language === 'en' ? 'ES' : 'EN'}</span>
                     </button>
                 </div>
             </motion.header>
@@ -139,7 +139,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                                 <p className="text-[10px] font-extrabold text-dim uppercase tracking-[0.2em] mb-2">{t('scheduled_delivery_date')}</p>
                                 <h1 className="text-5xl font-extralight text-main tracking-tighter">
                                     {activeShipment.estimated_arrival 
-                                        ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short' })
+                                        ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short' })
                                         : activeShipment.date || t('pending')}
                                 </h1>
                                 <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-dim text-[11px] font-bold text-dim uppercase tracking-widest">
@@ -368,7 +368,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                                         <p className="text-main/80 text-[13px] mt-0.5 uppercase tracking-wide font-medium">{activeShipment.origin || 'FACILITY'}</p>
                                         <p className="text-dim text-[12px] mt-2 flex items-center gap-1.5">
                                             <Clock className="w-3.5 h-3.5" />
-                                            {new Date().toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                                            {new Date().toLocaleString(language === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}
                                         </p>
                                         
                                         {activeShipment.status === 'Spoiled' && (
@@ -403,7 +403,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                                         <p className="text-[12px] italic text-dim mb-0.5">{t('scheduled_delivery_date')}</p>
                                         <p className="text-[15px] text-dim font-light">
                                             {activeShipment.estimated_arrival 
-                                                ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'long' })
+                                                ? new Date(activeShipment.estimated_arrival).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { dateStyle: 'long' })
                                                 : activeShipment.date || t('pending')}
                                         </p>
                                         <p className="text-sm text-main font-semibold mt-1">{activeShipment.dest}</p>
@@ -589,3 +589,5 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
         </div>
     );
 }
+
+

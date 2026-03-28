@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Bell, AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as MapIcon, Activity, X, CheckCircle, Package, Plane, Ship, ChevronRight, ChevronDown, Menu, Loader2, Wind, User, Mail, Phone, Globe, Plus, LogOut, Truck, MapPin, Search, Calendar, Info, Navigation, ArrowRight, MessageSquare, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Logo from '../components/ui/Logo';
@@ -32,8 +32,26 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     const [dbAlerts, setDbAlerts] = useState<any[]>([]);
 
     const fetchAlerts = async () => {
-        const { data } = await supabase.from('notifications').select('*').eq('is_read', false).order('created_at', { ascending: false });
-        setDbAlerts(data || []);
+        const { data } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('is_read', false)
+            .order('created_at', { ascending: false });
+
+        const groupedAlerts = Object.values((data || []).reduce((acc: Record<string, any>, alert: any) => {
+            const key = alert.session_id || alert.id;
+            if (!acc[key]) {
+                acc[key] = {
+                    ...alert,
+                    groupedCount: 1,
+                };
+            } else {
+                acc[key].groupedCount += 1;
+            }
+            return acc;
+        }, {}));
+
+        setDbAlerts(groupedAlerts);
     };
 
     React.useEffect(() => {
@@ -57,12 +75,25 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     const [profilesLoading, setProfilesLoading] = useState(false);
 
 
-    const dismissAlert = async (id: string) => {
-        await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const dismissAlert = async (id: string, sessionId?: string) => {
+        const query = supabase.from('notifications').update({ is_read: true });
+        if (sessionId) {
+            await query.eq('session_id', sessionId).eq('is_read', false);
+        } else {
+            await query.eq('id', id);
+        }
         fetchAlerts();
     };
 
-    const resolveAlert = dismissAlert;
+    const resolveAlert = async (alert: any) => {
+        if (alert.session_id) {
+            setActiveTab('messages');
+            setSelectedSession(alert.session_id);
+            await dismissAlert(alert.id, alert.session_id);
+            return;
+        }
+        await dismissAlert(alert.id);
+    };
 
     const filteredShipments = filterStatus === 'All' ? shipments : shipments.filter(s => s.status === filterStatus);
 
@@ -336,7 +367,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     </button>
                     <div className="flex items-center gap-2">
                         <Logo size={32} />
-                        <h2 className="text-main text-lg font-bold tracking-tight">Evri<span className="text-blue-500 font-normal">{language === 'fr' ? ' Admin' : ' Admin'}</span></h2>
+                        <h2 className="text-main text-lg font-bold tracking-tight">Evri<span className="text-blue-500 font-normal">{language === 'es' ? ' Admin' : ' Admin'}</span></h2>
                     </div>
                 </div>
                 <div className="flex gap-4 items-center">
@@ -351,8 +382,8 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         {t('system_health')}
                     </div>
                     
-                    <button onClick={() => setLanguage(language === 'en' ? 'fr' : 'en')} className="p-2 rounded-full bg-slate-500/5 text-dim hover:text-main transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest pl-3">
-                        <Globe className="w-4 h-4 text-blue-500" /> {language === 'en' ? 'FR' : 'EN'}
+                    <button onClick={() => setLanguage(language === 'en' ? 'es' : 'en')} className="p-2 rounded-full bg-slate-500/5 text-dim hover:text-main transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest pl-3">
+                        <Globe className="w-4 h-4 text-blue-500" /> {language === 'en' ? 'ES' : 'EN'}
                     </button>
 
                     <button 
@@ -416,7 +447,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                             {p.photo_url ? <img src={p.photo_url} alt="" /> : <User className="w-full h-full p-2 text-blue-500" />}
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-main">{p.name || (language === 'fr' ? 'Anonyme' : 'Anonymous')}</p>
+                                                            <p className="font-bold text-main">{p.name || (language === 'es' ? 'Anonimo' : 'Anonymous')}</p>
                                                             <p className="text-[10px] text-dim uppercase tracking-widest">ID: {p.session_id.slice(-8)}</p>
                                                         </div>
                                                     </div>
@@ -584,12 +615,15 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                     <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${alert.type === 'critical' ? 'text-red-500' : 'text-blue-500'}`}>
                                                         {alert.type === 'critical' ? t('incident_alert') : (alert.type === 'info' ? t('system_notice') : t('notification'))}
                                                     </p>
-                                                    <p className="text-sm font-bold text-slate-800 leading-snug">{alert.title}: {alert.message}</p>
+                                                    <p className="text-sm font-bold text-slate-800 leading-snug">
+                                                        {alert.title}: {alert.message}
+                                                        {alert.groupedCount > 1 ? ` (${alert.groupedCount})` : ''}
+                                                    </p>
                                                     <div className="flex gap-2 mt-3">
-                                                        <button onClick={() => resolveAlert(alert.id)} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${alert.type === 'critical' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                                                            {t('resolve')}
+                                                        <button onClick={() => resolveAlert(alert)} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${alert.type === 'critical' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                                                            {language === 'es' ? 'Responder' : 'Respond'}
                                                         </button>
-                                                        <button onClick={() => dismissAlert(alert.id)} className="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 transition-colors">
+                                                        <button onClick={() => dismissAlert(alert.id, alert.session_id)} className="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 transition-colors">
                                                             <X className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
@@ -751,7 +785,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-black text-main uppercase tracking-widest">
-                                                        {chatSessions.find(s => s.sessionId === selectedSession)?.userName || (language === 'fr' ? 'Utilisateur EVR' : 'EVR User')}
+                                                        {chatSessions.find(s => s.sessionId === selectedSession)?.userName || (language === 'es' ? 'Usuario EVR' : 'EVR User')}
                                                     </p>
                                                     <p className="text-[10px] text-emerald-500 font-bold flex items-center gap-1 uppercase tracking-tighter">
                                                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -821,7 +855,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         
                         <div className="space-y-4">
                             <button 
-                                onClick={() => setLanguage(language === 'en' ? 'fr' : 'en')}
+                                onClick={() => setLanguage(language === 'en' ? 'es' : 'en')}
                                 className="w-full flex items-center justify-between p-6 rounded-3xl bg-slate-500/5 border border-dim hover:bg-slate-500/10 transition-all text-main"
                             >
                                 <div className="flex items-center gap-4">
@@ -830,7 +864,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                     </div>
                                     <div className="text-left">
                                         <p className="text-[10px] font-black uppercase text-dim tracking-widest mb-1">{t('language_region')}</p>
-                                        <p className="text-lg font-bold">{language === 'fr' ? 'Français' : 'English'}</p>
+                                        <p className="text-lg font-bold">{language === 'es' ? 'Espanol' : 'English'}</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="w-5 h-5 text-dim" />
@@ -968,7 +1002,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                         >
                                             {statusOptions.map(s => (
                                                 <option key={s} value={s} className="bg-card text-main font-bold">
-                                                    {s === 'Spoiled' ? '💨 ' + t('spoiled_status') : getStatusTranslation(s)}
+                                                    {s === 'Spoiled' ? 'ðŸ’¨ ' + t('spoiled_status') : getStatusTranslation(s)}
                                                 </option>
                                             ))}
                                         </select>
@@ -1033,7 +1067,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                             ))}
                                             <div className="py-4 rounded-2xl border-2 border-dim text-dim bg-slate-500/5 flex flex-col items-center justify-center gap-2">
                                                 <ChevronDown className="w-6 h-6" />
-                                                <span className="text-[9px] font-black uppercase tracking-[0.1em]">{language === 'fr' ? 'Plus' : 'More'}</span>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.1em]">{language === 'es' ? 'Plus' : 'More'}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1047,7 +1081,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                     onClick={() => handleToggleSimulation(selectedShipment.id)}
                                                     className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${simulatingId === selectedShipment.id ? 'bg-emerald-600 text-white shadow-xl scale-105' : 'bg-slate-500/10 text-dim border border-dim hover:bg-slate-500/20'}`}
                                                 >
-                                                    {simulatingId === selectedShipment.id ? (language === 'fr' ? 'Stop' : 'Stop') : (language === 'fr' ? 'Go Sim' : 'Go Sim')}
+                                                    {simulatingId === selectedShipment.id ? (language === 'es' ? 'Stop' : 'Stop') : (language === 'es' ? 'Go Sim' : 'Go Sim')}
                                                 </button>
                                             </div>
                                         </div>
@@ -1058,7 +1092,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
 
                                     <div>
                                         <label className="block text-[10px] font-black text-dim uppercase tracking-widest mb-2">{t('msg_to_recipient')}</label>
-                                        <textarea value={selectedShipment.admin_message || ''} onChange={(e) => setSelectedShipment({ ...selectedShipment, admin_message: e.target.value })} placeholder={language === 'fr' ? 'Message important...' : 'Important update...'} className="w-full bg-slate-500/5 border border-dim rounded-xl px-4 py-3 text-sm font-medium text-main focus:border-blue-500 resize-none h-24 outline-none placeholder:text-dim/50"></textarea>
+                                        <textarea value={selectedShipment.admin_message || ''} onChange={(e) => setSelectedShipment({ ...selectedShipment, admin_message: e.target.value })} placeholder={language === 'es' ? 'Mensaje importante...' : 'Important update...'} className="w-full bg-slate-500/5 border border-dim rounded-xl px-4 py-3 text-sm font-medium text-main focus:border-blue-500 resize-none h-24 outline-none placeholder:text-dim/50"></textarea>
                                     </div>
                                 </div>
 
@@ -1106,7 +1140,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                             <span className="text-[10px] font-bold text-dim uppercase tracking-wider">{t('est_arrival_short')}</span>
                                             <span className={`text-sm font-black ${selectedShipment.estimated_arrival ? 'text-blue-500' : 'text-dim'}`}>
                                                 {selectedShipment.estimated_arrival 
-                                                    ? new Date(selectedShipment.estimated_arrival).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { day: '2-digit', month: 'short' })
+                                                    ? new Date(selectedShipment.estimated_arrival).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', { day: '2-digit', month: 'short' })
                                                     : '---'}
                                             </span>
                                         </div>
@@ -1174,13 +1208,13 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-2xl border-t border-dim px-2 pt-2 pb-6 flex justify-around items-center z-50">
                 <AdminNavItem 
                     icon={<LayoutDashboard className="w-6 h-6" />} 
-                    label={language === 'fr' ? 'Bord' : 'Dash'} 
+                    label={language === 'es' ? 'Panel' : 'Dash'} 
                     active={activeTab === 'dashboard'} 
                     onClick={() => setActiveTab('dashboard')} 
                 />
                 <AdminNavItem 
                     icon={<TrendingUp className="w-6 h-6" />} 
-                    label={language === 'fr' ? 'Stats' : 'Analytic'} 
+                    label={language === 'es' ? 'Stats' : 'Analytic'} 
                     active={activeTab === 'analytics'} 
                     onClick={() => setActiveTab('analytics')} 
                 />
@@ -1197,13 +1231,13 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
 
                 <AdminNavItem 
                     icon={<MessageSquare className="w-6 h-6" />} 
-                    label={language === 'fr' ? 'Chat' : 'Chat'} 
+                    label={language === 'es' ? 'Chat' : 'Chat'} 
                     active={activeTab === 'messages'} 
                     onClick={() => setActiveTab('messages')} 
                 />
                 <AdminNavItem 
                     icon={<Settings className="w-6 h-6" />} 
-                    label={language === 'fr' ? 'Réglage' : 'Settings'} 
+                    label={language === 'es' ? 'Ajustes' : 'Settings'} 
                     active={activeTab === 'settings'} 
                     onClick={() => setActiveTab('settings')} 
                 />
@@ -1211,3 +1245,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
         </div>
     );
 }
+
+
+
+

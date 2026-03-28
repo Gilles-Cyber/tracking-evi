@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -262,7 +262,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Mobile Header Logo */}
-      {!showSplash && currentPage !== 'admin' && (
+      {!showSplash && currentPage !== 'admin' && currentPage !== 'search' && currentPage !== 'support' && currentPage !== 'tracking' && (
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-dim bg-card/80 backdrop-blur-xl px-6 flex items-center justify-between z-50">
           <motion.div 
             whileTap={{ scale: 0.95 }}
@@ -346,20 +346,31 @@ export default function App() {
                   <button
                       className="p-2 sm:p-2.5 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim group flex items-center gap-2 relative"
                       title={t('notifications')}
+                      onClick={() => {
+                          clearUnread();
+                          if (isAdmin) {
+                              navigate('/admin');
+                          } else {
+                              navigate('/support');
+                          }
+                      }}
                   >
                       <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-blue-500" />
-                      {/* Random pulse dot for demo if there's unread msg */}
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-card shadow-lg animate-pulse" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-card animate-in zoom-in duration-300">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
                   </button>
 
                   <button
                       onClick={toggleLanguage}
                       className="p-2 sm:p-2.5 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim group flex items-center gap-2"
-                      title={language === 'en' ? 'Passer en Français' : 'Switch to English'}
+                      title={language === 'en' ? 'Cambiar a Español' : 'Switch to English'}
                   >
                       <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                       <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:block">
-                          {language === 'en' ? 'FR' : 'EN'}
+                          {language === 'en' ? 'ES' : 'EN'}
                       </span>
                   </button>
 
@@ -379,3 +390,7 @@ export default function App() {
     </div>
   );
 }
+
+
+
+

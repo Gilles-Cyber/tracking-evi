@@ -351,25 +351,25 @@ export const translations = {
     encryption_desc: "Logistics data is encrypted at rest and in transit via AES-256 blocks, ensuring zero-trust payload transfer.",
     est_arrival_short: "Est. Arrival",
   },
-  fr: {
+  es: {
     // Navigation
-    home: "Accueil",
-    tracking: "Suivi",
-    ship: "Expédier",
-    profile: "Profil",
-    login: "Connexion",
+    home: "Inicio",
+    tracking: "Seguimiento",
+    ship: "Enviar",
+    profile: "Perfil",
+    login: "Iniciar sesion",
     admin: "Admin",
-    logout: "Déconnexion",
+    logout: "Cerrar sesion",
 
     // Home
-    welcome: "Logistique Mondiale Sécurisée",
-    subtitle: "Solutions de transport premium pour vos actifs les plus précieux. Suivi en temps réel et sécurité quantique.",
-    track_now: "Suivre un colis",
-    track_description: 'Entrez votre numéro de suivi ci-dessous pour recevoir des mises à jour en temps réel sur le statut de votre colis.',
-    secure_protocol: 'Protocole de Suivi Sécurisé',
-    download_invoice: 'Télécharger la Facture Numérique',
-    scanning_system: 'Système de Balayage Global',
-    ship_now: "Expédier maintenant",
+    welcome: "Logistica Global Segura",
+    subtitle: "Soluciones de transporte premium para sus activos mas valiosos. Seguimiento en tiempo real y seguridad cuantica.",
+    track_now: "Rastrear envio",
+    track_description: 'Ingrese su numero de seguimiento para recibir actualizaciones en tiempo real.',
+    secure_protocol: 'Protocolo de Seguimiento Seguro',
+    download_invoice: 'Descargar Factura Digital',
+    scanning_system: 'Sistema de Escaneo Global',
+    ship_now: "Enviar ahora",
 
     // Shipment View
     initiate_shipment: "Initier une Expédition",
@@ -672,5 +672,8 @@ export const translations = {
   }
 };
 
-export type Language = 'en' | 'fr';
+export type Language = 'en' | 'es';
 export type TranslationKey = keyof typeof translations.en;
+
+
+

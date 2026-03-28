@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Send, Phone, Video, MoreVertical, ShieldCheck, CheckCircle2, Loader2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page, ChatMessage } from '../types';
@@ -128,16 +128,16 @@ export function SupportView({ onNavigate }: { onNavigate: (page: Page) => void }
             <div className="absolute -bottom-[20%] -left-[10%] w-[50%] h-[50%] bg-blue-50/80 rounded-full blur-[120px] pointer-events-none"></div>
 
             {/* Premium Header */}
-            <header className="flex flex-col p-4 sm:p-6 border-b border-dim sticky top-0 bg-bg-app/80 backdrop-blur-xl z-20 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
+            <header className="flex items-center justify-between p-4 sm:p-6 border-b border-dim sticky top-0 bg-bg-app/80 backdrop-blur-xl z-20 shadow-sm">
+                <div className="flex items-center justify-between w-full">
                     <button onClick={() => onNavigate('profile')} className="p-2 -ml-2 text-dim hover:text-main hover:bg-slate-500/5 rounded-full transition-colors border border-transparent hover:border-dim">
                         <ArrowLeft className="w-6 h-6" />
                     </button>
-                    <div className="flex gap-2">
+                    <div className="text-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">{t('chat_with_agent')}</p>
                     </div>
+                    <div className="w-10" />
                 </div>
-
-
             </header>
 
             {/* Chat Area */}
@@ -222,4 +222,5 @@ export function SupportView({ onNavigate }: { onNavigate: (page: Page) => void }
         </div>
     );
 }
+
 
