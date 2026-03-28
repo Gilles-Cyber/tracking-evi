@@ -13,7 +13,9 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('gxn_language');
-    return (saved as Language) || 'es'; // Default to Spanish
+    if (saved === 'fr') return 'es';
+    if (saved === 'en' || saved === 'es') return saved as Language;
+    return 'es'; // Default to Spanish
   });
 
   useEffect(() => {
@@ -25,7 +27,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   const t = (key: TranslationKey): string => {
-    return translations[language][key] || translations['en'][key] || key;
+    const dict = translations[language] || translations.en;
+    return dict[key] || translations.en[key] || key;
   };
 
   const toggleLanguage = () => {
