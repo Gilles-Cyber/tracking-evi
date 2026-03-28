@@ -33,6 +33,16 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     // User Management states
     const [profiles, setProfiles] = useState<any[]>([]);
     const [profilesLoading, setProfilesLoading] = useState(false);
+    const [footerSettings, setFooterSettings] = useState({
+        company_name: 'Evri Logistics',
+        phone: '+1 (000) 123-4567',
+        email: 'support@evri-logistics.com',
+        address: 'Global Operations Center, 42 Meridian Way',
+        tagline: 'Global visibility, secure handling, and premium delivery operations.',
+        legal: 'All rights reserved.',
+    });
+    const [footerSaving, setFooterSaving] = useState(false);
+    const [footerStatus, setFooterStatus] = useState<'idle' | 'saved' | 'error'>('idle');
 
 
     const filteredShipments = filterStatus === 'All' ? shipments : shipments.filter(s => s.status === filterStatus);
@@ -134,6 +144,52 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
             fetchProfiles();
         }
     }, [activeTab]);
+
+    React.useEffect(() => {
+        const fetchFooter = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('footer_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                if (error && error.code !== 'PGRST116') throw error;
+                if (data) {
+                    setFooterSettings({
+                        company_name: data.company_name || footerSettings.company_name,
+                        phone: data.phone || footerSettings.phone,
+                        email: data.email || footerSettings.email,
+                        address: data.address || footerSettings.address,
+                        tagline: data.tagline || footerSettings.tagline,
+                        legal: data.legal || footerSettings.legal,
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading footer settings:', err);
+            }
+        };
+        fetchFooter();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleSaveFooter = async () => {
+        setFooterSaving(true);
+        setFooterStatus('idle');
+        try {
+            const { error } = await supabase.from('footer_settings').upsert({
+                id: 1,
+                ...footerSettings,
+                updated_at: new Date().toISOString(),
+            });
+            if (error) throw error;
+            setFooterStatus('saved');
+        } catch (err) {
+            console.error('Error saving footer settings:', err);
+            setFooterStatus('error');
+        } finally {
+            setFooterSaving(false);
+        }
+    };
 
     const getVehicleIcon = (type: string, className: string = "w-5 h-5") => {
         if (type === 'air') return <Plane className={className} />;
@@ -474,9 +530,9 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     </div>
                 )}
 
-                {/* SETTINGS TAB (Mobile Only) */}
+                {/* SETTINGS TAB */}
                 {activeTab === 'settings' && (
-                    <div className="lg:hidden space-y-6">
+                    <div className="space-y-6">
                     <div className="p-8 rounded-[2.5rem] bg-card border border-dim shadow-xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-6 opacity-[0.05]">
                             <Settings className="w-24 h-24 text-blue-500" />
@@ -504,6 +560,78 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                             </button>
 
                             {/* Settings content without redundant logout */}
+                        </div>
+                    </div>
+                    <div className="p-8 rounded-[2.5rem] bg-card border border-dim shadow-xl">
+                        <h4 className="text-lg font-black text-main mb-6 flex items-center gap-2">
+                            <Info className="w-5 h-5 text-blue-500" />
+                            {t('footer_settings')}
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('company_name')}</label>
+                                <input
+                                    value={footerSettings.company_name}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, company_name: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('phone')}</label>
+                                <input
+                                    value={footerSettings.phone}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, phone: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('email')}</label>
+                                <input
+                                    type="email"
+                                    value={footerSettings.email}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, email: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('address')}</label>
+                                <input
+                                    value={footerSettings.address}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, address: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('tagline')}</label>
+                                <input
+                                    value={footerSettings.tagline}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, tagline: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-[10px] font-black text-dim uppercase tracking-widest">{t('legal')}</label>
+                                <input
+                                    value={footerSettings.legal}
+                                    onChange={(e) => setFooterSettings({ ...footerSettings, legal: e.target.value })}
+                                    className="w-full bg-slate-500/5 border border-dim rounded-2xl px-4 py-3 text-sm font-semibold text-main focus:border-blue-500 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 mt-6">
+                            <button
+                                onClick={handleSaveFooter}
+                                disabled={footerSaving}
+                                className="px-6 py-3 rounded-2xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all disabled:opacity-50"
+                            >
+                                {footerSaving ? t('saving') : t('save_changes')}
+                            </button>
+                            {footerStatus === 'saved' && (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">{t('saved')}</span>
+                            )}
+                            {footerStatus === 'error' && (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">{t('message_failed')}</span>
+                            )}
                         </div>
                     </div>
                 </div>

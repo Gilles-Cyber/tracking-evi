@@ -28,6 +28,10 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [profile, setProfile] = useState<UserProfile>({ name: '', email: '', phone: '' });
+    const [contactEmail, setContactEmail] = useState('');
+    const [contactSubject, setContactSubject] = useState('');
+    const [contactMessage, setContactMessage] = useState('');
+    const [contactStatus, setContactStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -43,6 +47,40 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
         };
         fetchProfile();
     }, [sessionId]);
+
+    useEffect(() => {
+        if (!contactEmail && profile.email) {
+            setContactEmail(profile.email);
+        }
+    }, [profile.email, contactEmail]);
+
+    const handleSendContact = async () => {
+        if (!contactEmail.trim() || !contactMessage.trim()) {
+            setContactStatus('error');
+            return;
+        }
+        setContactStatus('sending');
+        try {
+            const res = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: profile.name || 'Evri User',
+                    email: contactEmail.trim(),
+                    subject: contactSubject.trim(),
+                    message: contactMessage.trim(),
+                    sessionId,
+                }),
+            });
+            if (!res.ok) throw new Error('send_failed');
+            setContactStatus('sent');
+            setContactSubject('');
+            setContactMessage('');
+        } catch (err) {
+            console.error('Error sending contact email:', err);
+            setContactStatus('error');
+        }
+    };
 
     const handleSave = async () => {
         if (!sessionId) return;
@@ -282,6 +320,63 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
                                 </button>
                             );
                         })}
+                    </div>
+                </motion.div>
+
+                {/* Contact Support */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                >
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-1">{t('contact_support')}</p>
+                    <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
+                        <p className="text-xs text-slate-500 font-medium">{t('contact_support_desc')}</p>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('contact_email')}</label>
+                            <input
+                                type="email"
+                                value={contactEmail}
+                                onChange={e => setContactEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('subject')}</label>
+                            <input
+                                type="text"
+                                value={contactSubject}
+                                onChange={e => setContactSubject(e.target.value)}
+                                placeholder="Tracking question"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">{t('message')}</label>
+                            <textarea
+                                value={contactMessage}
+                                onChange={e => setContactMessage(e.target.value)}
+                                placeholder={t('contact_support_desc')}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all outline-none min-h-[120px] resize-none"
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <motion.button
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleSendContact}
+                                disabled={contactStatus === 'sending'}
+                                className="px-6 py-3 rounded-2xl bg-blue-600 text-white text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all disabled:opacity-50"
+                            >
+                                {contactStatus === 'sending' ? t('saving') : t('send_message')}
+                            </motion.button>
+                            {contactStatus === 'sent' && (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">{t('message_sent')}</span>
+                            )}
+                            {contactStatus === 'error' && (
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">{t('message_failed')}</span>
+                            )}
+                        </div>
                     </div>
                 </motion.div>
 

@@ -1,5 +1,7 @@
 import { ArrowRight, Clock3, Globe2, Package, Plane, ShieldCheck, Sparkles, Truck, ChevronRight } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { Page } from '../types';
 
 const IMAGES = {
@@ -35,7 +37,53 @@ const INDUSTRIES = [
     'Food & Cold Chain',
 ];
 
+interface FooterSettings {
+    company_name: string;
+    phone: string;
+    email: string;
+    address: string;
+    tagline: string;
+    legal: string;
+}
+
+const DEFAULT_FOOTER: FooterSettings = {
+    company_name: 'Evri Logistics',
+    phone: '+1 (000) 123-4567',
+    email: 'support@evri-logistics.com',
+    address: 'Global Operations Center, 42 Meridian Way',
+    tagline: 'Global visibility, secure handling, and premium delivery operations.',
+    legal: 'All rights reserved.',
+};
+
 export function HomeView({ onNavigate, onLogoClick, isAdmin }: { onNavigate: (page: Page) => void, onLogoClick: () => void, isAdmin: boolean }) {
+    const [footerSettings, setFooterSettings] = useState<FooterSettings>(DEFAULT_FOOTER);
+
+    useEffect(() => {
+        const fetchFooter = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('footer_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
+                if (error && error.code !== 'PGRST116') throw error;
+                if (data) {
+                    setFooterSettings({
+                        company_name: data.company_name || DEFAULT_FOOTER.company_name,
+                        phone: data.phone || DEFAULT_FOOTER.phone,
+                        email: data.email || DEFAULT_FOOTER.email,
+                        address: data.address || DEFAULT_FOOTER.address,
+                        tagline: data.tagline || DEFAULT_FOOTER.tagline,
+                        legal: data.legal || DEFAULT_FOOTER.legal,
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading footer settings:', err);
+            }
+        };
+        fetchFooter();
+    }, []);
+
     return (
         <div className="relative min-h-screen overflow-hidden font-sans bg-white selection:bg-blue-500/30">
             {/* Extremely subtle ambient glows for premium feel */}
@@ -258,6 +306,28 @@ export function HomeView({ onNavigate, onLogoClick, isAdmin }: { onNavigate: (pa
                         </button>
                     </div>
                 </section>
+
+                {/* Footer */}
+                <footer className="rounded-[2.5rem] bg-gradient-to-br from-blue-700 via-blue-600 to-blue-500 text-white px-8 md:px-12 py-10 md:py-12 shadow-2xl shadow-blue-700/30">
+                    <div className="grid gap-8 md:grid-cols-3">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-100/80 mb-3">{footerSettings.company_name}</p>
+                            <p className="text-blue-50/90">
+                                {footerSettings.tagline}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-100/80 mb-3">Contact</p>
+                            <p className="text-blue-50/90">Phone: {footerSettings.phone}</p>
+                            <p className="text-blue-50/90">Email: {footerSettings.email}</p>
+                            <p className="text-blue-50/70 mt-2 text-xs">{footerSettings.address}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-100/80 mb-3">Company</p>
+                            <p className="text-blue-50/90">© {new Date().getFullYear()} {footerSettings.company_name}. {footerSettings.legal}</p>
+                        </div>
+                    </div>
+                </footer>
                 
             </main>
         </div>

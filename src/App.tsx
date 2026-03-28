@@ -143,6 +143,25 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const propertyId = import.meta.env.VITE_TAWK_PROPERTY_ID;
+    const widgetId = import.meta.env.VITE_TAWK_WIDGET_ID;
+    if (!propertyId || !widgetId) return;
+
+    const w = window as any;
+    if (w.__tawkLoaded) return;
+    w.__tawkLoaded = true;
+    w.Tawk_API = w.Tawk_API || {};
+    w.Tawk_LoadStart = new Date();
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://embed.tawk.to/${propertyId}/${widgetId}`;
+    script.charset = 'UTF-8';
+    script.setAttribute('crossorigin', '*');
+    document.body.appendChild(script);
+  }, []);
+
   const handleNavigate = (page: Page | string) => {
     const routes: Record<string, string> = {
       home: '/',
