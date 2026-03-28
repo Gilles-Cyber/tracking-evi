@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Globe, Home, Navigation, Package, User, Search, ArrowRight, Shield, Clock, 
   MapPin, CheckCircle, Smartphone, Settings, LogOut, ChevronRight,
-  Plus, Bell, Info, MessageSquare
+  Plus, Info
 } from 'lucide-react';
 import { Page, Shipment } from './types';
 
@@ -21,7 +21,6 @@ import { BottomNavBar } from './components/ui/BottomNavBar';
 import { useNotification } from './contexts/NotificationContext';
 import { HistoryView } from './views/HistoryView';
 import { DocumentsView } from './views/DocumentsView';
-import { SupportView } from './views/SupportView';
 import { SettingsView } from './views/SettingsView';
 import { SplashScreen } from './views/SplashScreen';
 import { LoginView } from './views/LoginView';
@@ -75,7 +74,7 @@ export default function App() {
   };
   const currentPage = getPathname();
 
-  const { notify, unreadCount, clearUnread } = useNotification();
+  const { notify } = useNotification();
 
   useEffect(() => {
     async function fetchShipments() {
@@ -131,35 +130,8 @@ export default function App() {
       })
       .subscribe();
 
-    // Chat Realtime subscription
-    const chatSubscription = supabase
-      .channel('global_messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, (payload) => {
-        const newMsg = payload.new as any;
-        
-        // Notification for User
-        if (newMsg.sender_type === 'admin' && newMsg.session_id === sessionId) {
-          // If not currently on the support page
-          if (window.location.pathname !== '/support') {
-            notify('info', t('new_message_from_support'), newMsg.text);
-          }
-        }
-        
-        // Notification for Admin
-        if (newMsg.sender_type === 'user' && isAdmin) {
-          // If not currently on the admin page or not on the messages tab
-          // Note: Checking activeTab from App.tsx is tricky without moving state up, 
-          // but we can at least check if we are not on the /admin route or just notify anyway.
-          if (window.location.pathname !== '/admin') {
-            notify('warning', t('new_support_msg'), `${t('from')}: ${newMsg.session_id.slice(-8)}`);
-          }
-        }
-      })
-      .subscribe();
-
     return () => { 
       supabase.removeChannel(subscription); 
-      supabase.removeChannel(chatSubscription);
     };
   }, [sessionId, notify, isAdmin, t]);
 
@@ -172,9 +144,6 @@ export default function App() {
   }, []);
 
   const handleNavigate = (page: Page | string) => {
-    if (page === 'support' || (isAdmin && page === 'admin')) {
-      clearUnread();
-    }
     const routes: Record<string, string> = {
       home: '/',
       search: '/suivi',
@@ -184,7 +153,6 @@ export default function App() {
       profile: '/profil',
       history: '/historique',
       documents: '/documents',
-      support: '/support',
       settings: '/settings',
       login: '/login'
     };
@@ -253,7 +221,6 @@ export default function App() {
             <Route path="/profil" element={<PageTransition currentPage={currentPage}><ProfileView onNavigate={handleNavigate} sessionId={sessionId} shipments={shipments} /></PageTransition>} />
             <Route path="/historique" element={<PageTransition currentPage={currentPage}><HistoryView onNavigate={handleNavigate} sessionId={sessionId} shipments={shipments} onTrack={(id) => navigate(`/suivi/${id}`)} /></PageTransition>} />
             <Route path="/documents" element={<PageTransition currentPage={currentPage}><DocumentsView onNavigate={handleNavigate} /></PageTransition>} />
-            <Route path="/support" element={<PageTransition currentPage={currentPage}><SupportView onNavigate={handleNavigate} /></PageTransition>} />
             <Route path="/settings" element={<PageTransition currentPage={currentPage}><SettingsView onNavigate={handleNavigate} /></PageTransition>} />
             <Route path="/login" element={<PageTransition currentPage={currentPage}><LoginView onNavigate={handleNavigate} /></PageTransition>} />
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -262,7 +229,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Mobile Header Logo */}
-      {!showSplash && currentPage !== 'admin' && currentPage !== 'search' && currentPage !== 'support' && currentPage !== 'tracking' && (
+      {!showSplash && currentPage !== 'admin' && currentPage !== 'search' && currentPage !== 'tracking' && (
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-dim bg-card/80 backdrop-blur-xl px-6 flex items-center justify-between z-50">
           <motion.div 
             whileTap={{ scale: 0.95 }}
@@ -290,25 +257,6 @@ export default function App() {
             >
                 <Globe className="w-5 h-5" />
             </button>
-            <button
-                className="p-2 rounded-full bg-slate-500/10 text-slate-500 relative group"
-                title={t('notifications')}
-                onClick={() => { 
-                    clearUnread(); 
-                    if (isAdmin) {
-                        navigate('/admin');
-                    } else {
-                        navigate('/support');
-                    }
-                }}
-            >
-                <Bell className="w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-black rounded-full border-2 border-card flex items-center justify-center animate-in zoom-in duration-300">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-            </button>
           </div>
         </div>
       )}
@@ -331,39 +279,6 @@ export default function App() {
               
               <div className="flex items-center gap-2 ml-4">
                   <button
-                      onClick={() => handleNavigate('support')}
-                      className={`p-2 sm:p-2.5 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim group flex items-center gap-2 relative ${currentPage === 'support' ? 'text-blue-500 border-blue-500/50' : ''}`}
-                      title={t('support')}
-                  >
-                      <MessageSquare className={`w-4 h-4 sm:w-5 sm:h-5 ${currentPage === 'support' ? 'text-blue-500' : 'text-slate-500 group-hover:text-blue-500'}`} />
-                      {!isAdmin && unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-blue-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-card animate-in zoom-in duration-300">
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                      )}
-                  </button>
-
-                  <button
-                      className="p-2 sm:p-2.5 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim group flex items-center gap-2 relative"
-                      title={t('notifications')}
-                      onClick={() => {
-                          clearUnread();
-                          if (isAdmin) {
-                              navigate('/admin');
-                          } else {
-                              navigate('/support');
-                          }
-                      }}
-                  >
-                      <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 group-hover:text-blue-500" />
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-card animate-in zoom-in duration-300">
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                      )}
-                  </button>
-
-                  <button
                       onClick={toggleLanguage}
                       className="p-2 sm:p-2.5 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim group flex items-center gap-2"
                       title={language === 'en' ? 'Cambiar a Español' : 'Switch to English'}
@@ -384,7 +299,6 @@ export default function App() {
         <BottomNavBar 
           currentPage={currentPage} 
           onNavigate={handleNavigate} 
-          isAdmin={isAdmin} 
         />
       )}
     </div>

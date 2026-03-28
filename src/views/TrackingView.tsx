@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Page, Shipment } from '../types';
 import Logo from '../components/ui/Logo';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useNotification } from '../contexts/NotificationContext';
 
 interface TrackingViewProps {
     onNavigate: (page: Page) => void;
@@ -20,7 +19,6 @@ interface TrackingViewProps {
 
 export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }: TrackingViewProps) {
     const { t, language, toggleLanguage } = useLanguage();
-    const { notify } = useNotification();
     const { id } = useParams<{ id: string }>();
     const activeId = shipmentId || id;
     const activeShipment = shipments.find(s => s.id === activeId) || shipments[0];
@@ -437,10 +435,10 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                         {t('docs_douane')}
                     </button>
                     <button 
-                        onClick={() => onNavigate('support' as any)}
+                        onClick={() => onNavigate('tracking' as any)}
                         className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl border border-dim text-dim font-semibold hover:bg-slate-500/5 transition-all bg-card shadow-sm"
                     >
-                        {t('support_protocol')}
+                        {t('track_another_shipment')}
                     </button>
                 </motion.div>
 

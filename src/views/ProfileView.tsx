@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import {
-    ArrowLeft, Settings, History, Headphones, ChevronRight,
+    ArrowLeft, Settings, History, ChevronRight,
     User, Package, Navigation, Camera, Save, Loader2, Trash2, X, Edit3, MapPin, Mail, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -93,7 +93,6 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
         { icon: Navigation, label: t('tracking'), color: 'text-blue-500', bg: 'bg-blue-50', onClick: () => onNavigate('search') },
         { icon: Package, label: t('ship'), color: 'text-indigo-500', bg: 'bg-indigo-50', onClick: () => onNavigate('shipment') },
         { icon: History, label: t('history_title'), color: 'text-violet-500', bg: 'bg-violet-50', onClick: () => onNavigate('historique') },
-        { icon: Headphones, label: t('support_protocol'), color: 'text-emerald-500', bg: 'bg-emerald-50', onClick: () => onNavigate('support') },
     ];
 
     const menuItems = [

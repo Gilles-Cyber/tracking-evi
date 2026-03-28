@@ -14,6 +14,27 @@ const STATS = [
     { title: 'Active Shipments', value: '2.4M', desc: 'Handled with precision every single day.' },
 ];
 
+const HIGHLIGHTS = [
+    { title: 'Smart Routing', desc: 'AI-optimized lanes that reduce delays and keep every parcel on schedule.' },
+    { title: 'Live Visibility', desc: 'Real-time checkpoints with proactive updates from pickup to delivery.' },
+    { title: 'Secure Handling', desc: 'Tamper-aware tracking with audited custody and verified handoffs.' },
+];
+
+const STEPS = [
+    { title: 'Create Shipment', desc: 'Generate a tracking code and define route, cargo, and priority in seconds.' },
+    { title: 'Monitor Transit', desc: 'Follow vehicle movement and milestones with clear, human-friendly updates.' },
+    { title: 'Confirm Delivery', desc: 'Receive final confirmation and access secure documentation instantly.' },
+];
+
+const INDUSTRIES = [
+    'E-commerce',
+    'Healthcare',
+    'Electronics',
+    'Fashion',
+    'Industrial',
+    'Food & Cold Chain',
+];
+
 export function HomeView({ onNavigate, onLogoClick, isAdmin }: { onNavigate: (page: Page) => void, onLogoClick: () => void, isAdmin: boolean }) {
     return (
         <div className="relative min-h-screen overflow-hidden font-sans bg-white selection:bg-blue-500/30">
@@ -111,6 +132,130 @@ export function HomeView({ onNavigate, onLogoClick, isAdmin }: { onNavigate: (pa
                                 <p className="text-sm font-medium text-slate-500 leading-relaxed max-w-[250px]">{stat.desc}</p>
                             </motion.div>
                         ))}
+                    </div>
+                </section>
+
+                {/* Value Highlights */}
+                <section className="grid lg:grid-cols-3 gap-8">
+                    {HIGHLIGHTS.map((item, idx) => (
+                        <motion.div
+                            key={item.title}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-40px" }}
+                            transition={{ delay: idx * 0.15, duration: 0.6 }}
+                            className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm hover:shadow-md transition-shadow"
+                        >
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4">{item.title}</p>
+                            <p className="text-lg font-bold text-slate-900 mb-3">{item.title}</p>
+                            <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                        </motion.div>
+                    ))}
+                </section>
+
+                {/* How It Works */}
+                <section className="rounded-[2.5rem] border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-10 md:p-14 shadow-sm">
+                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 mb-3">How It Works</p>
+                            <h2 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-slate-900">
+                                Transparent logistics, end to end.
+                            </h2>
+                        </div>
+                        <button
+                            onClick={() => onNavigate('search')}
+                            className="inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-500"
+                        >
+                            Start Tracking <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {STEPS.map((step, idx) => (
+                            <div key={step.title} className="rounded-3xl bg-white border border-slate-100 p-6 shadow-sm">
+                                <div className="w-10 h-10 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center font-black mb-4">
+                                    {idx + 1}
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Industries Served */}
+                <section className="grid lg:grid-cols-[1.2fr_1fr] gap-10 items-center">
+                    <div className="space-y-6">
+                        <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Industries Served</p>
+                        <h2 className="text-3xl md:text-4xl font-display font-bold tracking-tight text-slate-900">
+                            Built for complex supply chains.
+                        </h2>
+                        <p className="text-base text-slate-500 leading-relaxed">
+                            Whether you ship time-sensitive medical goods or high-value electronics, Evri delivers the visibility,
+                            compliance, and reliability your customers expect.
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                            {INDUSTRIES.map(item => (
+                                <span key={item} className="px-4 py-2 rounded-full border border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-widest bg-white">
+                                    {item}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
+                                <ShieldCheck className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-900">Compliance Ready</p>
+                                <p className="text-xs text-slate-500">Audit-friendly logs and secure documentation.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                                <Truck className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-900">Optimized Fleet</p>
+                                <p className="text-xs text-slate-500">Ground, air, and sea networks managed in one view.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                                <Clock3 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-900">24/7 Visibility</p>
+                                <p className="text-xs text-slate-500">Instant updates for every milestone.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* CTA */}
+                <section className="rounded-[2.5rem] bg-slate-900 text-white p-10 md:p-14 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 shadow-2xl shadow-slate-900/15">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200 mb-3">Ready to Ship</p>
+                        <h2 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
+                            Launch your next delivery with Evri.
+                        </h2>
+                        <p className="text-sm text-blue-100/80 mt-3 max-w-xl">
+                            Track, verify, and deliver with confidence. Start a shipment or monitor an existing code in seconds.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={() => onNavigate('search')}
+                            className="px-8 py-4 rounded-2xl bg-white text-slate-900 font-bold text-sm flex items-center justify-center gap-3 hover:bg-slate-100 transition-all"
+                        >
+                            Track a Parcel <ArrowRight className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => onNavigate(isAdmin ? 'shipment' : 'profile')}
+                            className="px-8 py-4 rounded-2xl border border-white/30 text-white font-bold text-sm hover:bg-white/10 transition-all"
+                        >
+                            {isAdmin ? 'Create Shipment' : 'Manage Profile'}
+                        </button>
                     </div>
                 </section>
                 

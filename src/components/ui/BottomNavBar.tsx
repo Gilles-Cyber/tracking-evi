@@ -1,22 +1,18 @@
-import { Home, Send, Clock, User, Settings, MessageSquare } from 'lucide-react';
+import { Home, Send, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Page } from '../../types';
-import { useNotification } from '../../contexts/NotificationContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface BottomNavBarProps {
   currentPage: string;
   onNavigate: (page: Page) => void;
-  isAdmin: boolean;
 }
 
-export function BottomNavBar({ currentPage, onNavigate, isAdmin }: BottomNavBarProps) {
-  const { unreadCount } = useNotification();
+export function BottomNavBar({ currentPage, onNavigate }: BottomNavBarProps) {
   const { t } = useLanguage();
   const navItems = [
     { id: 'home', icon: Home, label: t('home') },
     { id: 'suivi', icon: Send, label: t('tracking') },
-    { id: 'support', icon: MessageSquare, label: t('help_support') },
     { id: 'profil', icon: User, label: t('profile') },
   ];
 
@@ -57,16 +53,7 @@ export function BottomNavBar({ currentPage, onNavigate, isAdmin }: BottomNavBarP
                     isActive ? 'text-blue-500 scale-110' : 'text-dim group-hover:text-main'
                   }`} 
                 />
-                {item.id === 'support' && unreadCount > 0 && !isAdmin && (
-                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] bg-blue-600 text-white text-[8px] font-black rounded-full border border-card flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
-                {item.id === 'admin' && unreadCount > 0 && isAdmin && (
-                  <span className="absolute -top-2 -right-2 min-w-[16px] h-[16px] bg-red-600 text-white text-[8px] font-black rounded-full border border-card flex items-center justify-center">
-                    {unreadCount}
-                  </span>
-                )}
+                
               </div>
               
               <span className={`text-[9px] font-bold uppercase tracking-widest mt-1.5 transition-all duration-300 ${

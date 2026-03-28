@@ -1,13 +1,12 @@
 ﻿import React, { useState } from 'react';
-import { Bell, AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as MapIcon, Activity, X, CheckCircle, Package, Plane, Ship, ChevronRight, ChevronDown, Menu, Loader2, Wind, User, Mail, Phone, Globe, Plus, LogOut, Truck, MapPin, Search, Calendar, Info, Navigation, ArrowRight, MessageSquare, Send } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as MapIcon, Activity, X, CheckCircle, Package, Plane, Ship, ChevronRight, ChevronDown, Menu, Loader2, Wind, User, Mail, Phone, Globe, Plus, LogOut, Truck, MapPin, Search, Calendar, Info, Navigation, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Logo from '../components/ui/Logo';
-import { Page, Shipment, ChatMessage } from '../types';
+import { Page, Shipment } from '../types';
 import { AdminStatCard } from '../components/ui/AdminStatCard';
 import { AdminNavItem } from '../components/ui/AdminNavItem';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useNotification } from '../contexts/NotificationContext';
 
 interface AdminViewProps {
     onNavigate: (page: Page) => void;
@@ -28,72 +27,13 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     
-    const { unreadCount, clearUnread } = useNotification();
-    const [dbAlerts, setDbAlerts] = useState<any[]>([]);
-
-    const fetchAlerts = async () => {
-        const { data } = await supabase
-            .from('notifications')
-            .select('*')
-            .eq('is_read', false)
-            .order('created_at', { ascending: false });
-
-        const groupedAlerts = Object.values((data || []).reduce((acc: Record<string, any>, alert: any) => {
-            const key = alert.session_id || alert.id;
-            if (!acc[key]) {
-                acc[key] = {
-                    ...alert,
-                    groupedCount: 1,
-                };
-            } else {
-                acc[key].groupedCount += 1;
-            }
-            return acc;
-        }, {}));
-
-        setDbAlerts(groupedAlerts);
-    };
-
-    React.useEffect(() => {
-        fetchAlerts();
-        const sub = supabase.channel('admin_notifs').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => fetchAlerts()).subscribe();
-        return () => { supabase.removeChannel(sub); };
-    }, []);
-
     const [simulatingId, setSimulatingId] = useState<string | null>(null);
     const simInterval = React.useRef<NodeJS.Timeout | null>(null);
-
-    // Chat states
-    const [chatSessions, setChatSessions] = useState<{ sessionId: string, lastMessage: string, lastTime: string, unreadCount: number, userName?: string }[]>([]);
-    const [selectedSession, setSelectedSession] = useState<string | null>(null);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-    const [chatInput, setChatInput] = useState('');
-    const [isSendingChat, setIsSendingChat] = useState(false);
     
     // User Management states
     const [profiles, setProfiles] = useState<any[]>([]);
     const [profilesLoading, setProfilesLoading] = useState(false);
 
-
-    const dismissAlert = async (id: string, sessionId?: string) => {
-        const query = supabase.from('notifications').update({ is_read: true });
-        if (sessionId) {
-            await query.eq('session_id', sessionId).eq('is_read', false);
-        } else {
-            await query.eq('id', id);
-        }
-        fetchAlerts();
-    };
-
-    const resolveAlert = async (alert: any) => {
-        if (alert.session_id) {
-            setActiveTab('messages');
-            setSelectedSession(alert.session_id);
-            await dismissAlert(alert.id, alert.session_id);
-            return;
-        }
-        await dismissAlert(alert.id);
-    };
 
     const filteredShipments = filterStatus === 'All' ? shipments : shipments.filter(s => s.status === filterStatus);
 
@@ -173,61 +113,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
         };
     }, []);
 
-    // Fetch chat sessions with profile info
-    React.useEffect(() => {
-        const fetchSessions = async () => {
-            const { data: msgData, error: msgError } = await supabase
-                .from('support_messages')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (msgError) {
-                console.error('Error fetching sessions:', msgError);
-                return;
-            }
-
-            // Fetch profiles to get user names
-            const { data: profileData } = await supabase.from('profiles').select('session_id, name');
-            const profileMap = (profileData || []).reduce((acc: any, p: any) => {
-                acc[p.session_id] = p.name;
-                return acc;
-            }, {});
-
-            const sessions: Record<string, typeof chatSessions[0]> = {};
-            msgData.forEach((m: ChatMessage) => {
-                if (!sessions[m.session_id]) {
-                    sessions[m.session_id] = {
-                        sessionId: m.session_id,
-                        lastMessage: m.text,
-                        lastTime: m.created_at,
-                        unreadCount: 0,
-                        userName: profileMap[m.session_id]
-                    };
-                }
-                if (!m.is_read && m.sender_type === 'user') {
-                    sessions[m.session_id].unreadCount++;
-                }
-            });
-            setChatSessions(Object.values(sessions));
-        };
-
-        fetchSessions();
-
-        const channel = supabase
-            .channel('admin_messages')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, () => {
-                fetchSessions();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-                fetchSessions();
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, []);
-
     const fetchProfiles = async () => {
         setProfilesLoading(true);
         try {
@@ -249,69 +134,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
             fetchProfiles();
         }
     }, [activeTab]);
-
-    // Fetch messages for selected session
-    React.useEffect(() => {
-        if (!selectedSession) return;
-
-        const fetchMessages = async () => {
-            const { data, error } = await supabase
-                .from('support_messages')
-                .select('*')
-                .eq('session_id', selectedSession)
-                .order('created_at', { ascending: true });
-
-            if (!error && data) {
-                setChatMessages(data);
-                // Mark as read
-                await supabase
-                    .from('support_messages')
-                    .update({ is_read: true })
-                    .eq('session_id', selectedSession)
-                    .eq('sender_type', 'user')
-                    .eq('is_read', false);
-            }
-        };
-
-        fetchMessages();
-
-        const channel = supabase
-            .channel(`chat_${selectedSession}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `session_id=eq.${selectedSession}` }, (payload) => {
-                setChatMessages(prev => [...prev, payload.new as ChatMessage]);
-                if ((payload.new as ChatMessage).sender_type === 'user') {
-                    supabase.from('support_messages').update({ is_read: true }).eq('id', (payload.new as ChatMessage).id).then();
-                }
-            })
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [selectedSession]);
-
-    const handleSendChat = async () => {
-        if (!chatInput.trim() || !selectedSession || isSendingChat) return;
-        setIsSendingChat(true);
-        const text = chatInput.trim();
-        setChatInput('');
-
-        try {
-            const { error } = await supabase.from('support_messages').insert([{
-                session_id: selectedSession,
-                text: text,
-                sender_type: 'admin',
-                is_read: false
-            }]);
-            if (error) throw error;
-        } catch (err) {
-            console.error('Error sending chat:', err);
-            setChatInput(text);
-        } finally {
-            setIsSendingChat(false);
-        }
-    };
-
 
     const getVehicleIcon = (type: string, className: string = "w-5 h-5") => {
         if (type === 'air') return <Plane className={className} />;
@@ -351,9 +173,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                     <button onClick={() => { setActiveTab('users'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
                                         <User className="w-4 h-4" /> {t('users')}
                                     </button>
-                                    <button onClick={() => { setActiveTab('messages'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4" /> {t('messages')}
-                                    </button>
                                     <button onClick={() => onNavigate('shipment')} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
                                         <Plus className="w-4 h-4" /> {t('ship')}
                                     </button>
@@ -386,18 +205,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         <Globe className="w-4 h-4 text-blue-500" /> {language === 'en' ? 'ES' : 'EN'}
                     </button>
 
-                    <button 
-                        onClick={() => { clearUnread(); setActiveTab('messages'); }}
-                        className="relative p-2 rounded-full bg-slate-500/5 text-dim hover:text-main transition-colors group"
-                    >
-                        <Bell className="w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-black text-white border border-card shadow-lg animate-in zoom-in duration-300">
-                                {unreadCount > 9 ? '9+' : unreadCount}
-                            </span>
-                        )}
-                    </button>
-                    
                     <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-dim hover:border-blue-500 transition-colors cursor-pointer">
                         <img className="w-full h-full object-cover" src="https://picsum.photos/seed/admin/100/100" alt="Admin" referrerPolicy="no-referrer" />
                     </div>
@@ -464,12 +271,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                     {new Date(p.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button 
-                                                        onClick={() => { setSelectedSession(p.session_id); setActiveTab('messages'); }}
-                                                        className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all"
-                                                    >
-                                                        {t('chat')}
-                                                    </button>
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-dim">N/A</span>
                                                 </td>
                                             </tr>
                                         ))
@@ -587,54 +389,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                             </div>
                         </motion.div>
 
-                        {/* 4. Alerts Panel (2x2) */}
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35 }} className="col-span-1 md:col-span-2 row-span-2 rounded-[2rem] bg-white border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                    <Activity className="w-5 h-5 text-red-500" /> {t('alerts')}
-                                </h3>
-                                <span className="bg-red-50 text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-full border border-red-100 tracking-widest uppercase">{dbAlerts.length} {t('new_alerts')}</span>
-                            </div>
-                            <div className="p-6 flex-1 overflow-y-auto space-y-3">
-                                <AnimatePresence>
-                                    {dbAlerts.length === 0 ? (
-                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
-                                            <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-500" /></div>
-                                            <p className="text-sm font-medium">{t('no_active_alerts')}</p>
-                                        </motion.div>
-                                    ) : (
-                                        dbAlerts.map(alert => (
-                                            <motion.div 
-                                                key={alert.id} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, scale: 0.95 }} 
-                                                className={`p-4 rounded-2xl border flex gap-4 items-start relative group ${alert.type === 'critical' ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}
-                                            >
-                                                <div className={`mt-1 p-2 rounded-xl shrink-0 ${alert.type === 'critical' ? 'bg-red-500 text-white shadow-md shadow-red-500/20' : 'bg-blue-500 text-white shadow-md shadow-blue-500/20'}`}>
-                                                    {alert.type === 'critical' ? <AlertTriangle className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${alert.type === 'critical' ? 'text-red-500' : 'text-blue-500'}`}>
-                                                        {alert.type === 'critical' ? t('incident_alert') : (alert.type === 'info' ? t('system_notice') : t('notification'))}
-                                                    </p>
-                                                    <p className="text-sm font-bold text-slate-800 leading-snug">
-                                                        {alert.title}: {alert.message}
-                                                        {alert.groupedCount > 1 ? ` (${alert.groupedCount})` : ''}
-                                                    </p>
-                                                    <div className="flex gap-2 mt-3">
-                                                        <button onClick={() => resolveAlert(alert)} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${alert.type === 'critical' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
-                                                            {language === 'es' ? 'Responder' : 'Respond'}
-                                                        </button>
-                                                        <button onClick={() => dismissAlert(alert.id, alert.session_id)} className="px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 transition-colors">
-                                                            <X className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        </motion.div>
-
                         {/* 5. Shipments Table (Full Width) */}
                         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="col-span-full rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4">
                             <div className="p-6 lg:p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
@@ -717,127 +471,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                 </table>
                             </div>
                         </motion.div>
-                    </div>
-                )}
-
-                {/* Chat Messages Tab Content */}
-                {activeTab === 'messages' && (
-                    <div className="col-span-full h-[calc(100vh-160px)] lg:h-[700px]">
-                        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 h-full">
-                            {/* Sessions List */}
-                            <div className={`lg:col-span-1 bg-card border border-dim rounded-3xl overflow-hidden flex-col shadow-lg transition-all ${selectedSession ? 'hidden lg:flex' : 'flex'}`}>
-                                <div className="p-6 border-b border-dim bg-slate-500/5">
-                                    <h3 className="text-lg font-bold text-main flex items-center gap-2">
-                                        <MessageSquare className="w-5 h-5 text-blue-500" />
-                                        {t('conversations')}
-                                    </h3>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                                    {chatSessions.length === 0 ? (
-                                        <div className="text-center py-10">
-                                            <p className="text-dim text-sm italic">{t('no_messages')}</p>
-                                        </div>
-                                    ) : (
-                                        chatSessions.map(session => (
-                                            <button 
-                                                key={session.sessionId}
-                                                onClick={() => setSelectedSession(session.sessionId)}
-                                                className={`w-full text-left p-4 rounded-2xl border transition-all flex flex-col gap-2 relative group ${selectedSession === session.sessionId ? 'bg-blue-600 border-blue-600 text-white shadow-lg' : 'bg-slate-500/5 border-dim text-main hover:bg-slate-500/10'}`}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${selectedSession === session.sessionId ? 'text-white/80' : 'text-dim'}`}>
-                                                        {session.userName || 'ID: ' + session.sessionId.slice(-8)}
-                                                    </span>
-                                                    <span className={`text-[9px] font-bold ${selectedSession === session.sessionId ? 'text-white/60' : 'text-dim/60'}`}>
-                                                        {new Date(session.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </div>
-                                                <p className={`text-sm font-bold line-clamp-1 ${selectedSession === session.sessionId ? 'text-white' : 'text-main'}`}>
-                                                    {session.lastMessage}
-                                                </p>
-                                                {session.unreadCount > 0 && selectedSession !== session.sessionId && (
-                                                    <span className="absolute -top-1 -right-1 flex h-5 w-5 rounded-full bg-red-500 text-[10px] font-black items-center justify-center text-white border-2 border-bg-app shadow-lg">
-                                                        {session.unreadCount}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Active Chat Window */}
-                            <div className={`lg:col-span-2 bg-bg-app border border-dim rounded-3xl overflow-hidden flex-col shadow-2xl relative transition-all ${selectedSession ? 'flex' : 'hidden lg:flex'}`}>
-                                {!selectedSession ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center text-center p-10 bg-card">
-                                        <div className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center mb-6 border border-blue-500/20">
-                                            <MessageSquare className="w-10 h-10 text-blue-500" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-main mb-2">{t('select_conversation')}</h3>
-                                        <p className="text-slate-500 max-w-xs mx-auto text-sm leading-relaxed">{t('choose_user_desc')}</p>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="p-6 border-b border-dim bg-card flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-blue-500/30 overflow-hidden">
-                                                    <img src={`https://picsum.photos/seed/${selectedSession}/100/100`} alt="User" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-black text-main uppercase tracking-widest">
-                                                        {chatSessions.find(s => s.sessionId === selectedSession)?.userName || (language === 'es' ? 'Usuario EVR' : 'EVR User')}
-                                                    </p>
-                                                    <p className="text-[10px] text-emerald-500 font-bold flex items-center gap-1 uppercase tracking-tighter">
-                                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                                                        {t('online')}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => setSelectedSession(null)} className="text-dim hover:text-main lg:hidden"><X className="w-6 h-6" /></button>
-                                        </div>
-
-                                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-500/5 ">
-                                            <AnimatePresence initial={false}>
-                                                {chatMessages.map(m => (
-                                                    <motion.div 
-                                                        key={m.id}
-                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        className={`flex ${m.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}
-                                                    >
-                                                        <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${m.sender_type === 'admin' 
-                                                            ? 'bg-blue-600 text-white rounded-br-none shadow-lg shadow-blue-500/20 font-medium' 
-                                                            : 'bg-card border border-dim text-main rounded-bl-none font-medium shadow-sm'}`}>
-                                                            {m.text}
-                                                            <div className={`text-[9px] mt-2 opacity-60 font-bold uppercase tracking-widest ${m.sender_type === 'admin' ? 'text-blue-100' : 'text-dim'}`}>
-                                                                {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            </div>
-                                                        </div>
-                                                    </motion.div>
-                                                ))}
-                                            </AnimatePresence>
-                                        </div>
-
-                                        <div className="p-4 bg-card border-t border-dim flex gap-4">
-                                            <input 
-                                                value={chatInput}
-                                                onChange={e => setChatInput(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && handleSendChat()}
-                                                placeholder={t('type_reply')}
-                                                className="flex-1 bg-slate-500/5 border border-dim rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-blue-500 transition-all placeholder:text-dim/50"
-                                            />
-                                            <button 
-                                                onClick={handleSendChat}
-                                                disabled={!chatInput.trim() || isSendingChat}
-                                                className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all disabled:opacity-50"
-                                            >
-                                                {isSendingChat ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t('send')} <Send className="w-5 h-5" /></>}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 )}
 
@@ -1229,12 +862,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     </button>
                 </div>
 
-                <AdminNavItem 
-                    icon={<MessageSquare className="w-6 h-6" />} 
-                    label={language === 'es' ? 'Chat' : 'Chat'} 
-                    active={activeTab === 'messages'} 
-                    onClick={() => setActiveTab('messages')} 
-                />
                 <AdminNavItem 
                     icon={<Settings className="w-6 h-6" />} 
                     label={language === 'es' ? 'Ajustes' : 'Settings'} 

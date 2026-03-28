@@ -1,8 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, CheckCircle, Info, X, Bell } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-import { getSessionId } from '../utils/session';
+import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -15,8 +13,6 @@ interface Notification {
 
 interface NotificationContextType {
   notify: (type: NotificationType, message: string, description?: string) => void;
-  unreadCount: number;
-  clearUnread: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -32,71 +28,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const fetchUnreadCount = useCallback(async () => {
-    const isAdmin = localStorage.getItem('gxn_admin') === 'true';
-    let query = supabase
-      .from('support_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_read', false);
-    if (isAdmin) {
-      query = query.eq('sender_type', 'user');
-    } else {
-      query = query.eq('sender_type', 'admin').eq('session_id', getSessionId());
-    }
-    const { count } = await query;
-    setUnreadCount(count || 0);
-  }, []);
-
-  React.useEffect(() => {
-    fetchUnreadCount();
-    const channel = supabase
-      .channel('global_notifications')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_messages' }, (payload) => {
-        const isAdmin = localStorage.getItem('gxn_admin') === 'true';
-        const msg = payload.new;
-        fetchUnreadCount();
-        if (!msg) return;
-        if (isAdmin && msg.sender_type === 'user') {
-          notify('info', 'Nouveau Message', 'Un utilisateur a envoyÃ© un message.');
-        } else if (!isAdmin && msg.sender_type === 'admin' && msg.session_id === getSessionId()) {
-          notify('info', 'RÃ©ponse Support', "L'administrateur vous a rÃ©pondu.");
-        }
-      })
-      .subscribe();
-    const interval = setInterval(fetchUnreadCount, 10000);
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
-  }, [fetchUnreadCount, notify]);
-
-  const clearUnread = async () => {
-    const isAdmin = localStorage.getItem('gxn_admin') === 'true';
-    if (isAdmin) {
-      await supabase
-        .from('support_messages')
-        .update({ is_read: true })
-        .eq('sender_type', 'user')
-        .eq('is_read', false);
-    } else {
-      await supabase
-        .from('support_messages')
-        .update({ is_read: true })
-        .eq('sender_type', 'admin')
-        .eq('session_id', getSessionId())
-        .eq('is_read', false);
-    }
-    setUnreadCount(0);
-  };
 
   const remove = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   return (
-    <NotificationContext.Provider value={{ notify, unreadCount, clearUnread }}>
+    <NotificationContext.Provider value={{ notify }}>
       {children}
       <div className="fixed bottom-20 md:bottom-6 right-6 z-[200] flex flex-col gap-3 w-full max-w-[calc(100vw-3rem)] sm:max-w-md pointer-events-none">
         <AnimatePresence mode="popLayout">
@@ -119,8 +57,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 }`}>
                   {n.type === 'success' ? <CheckCircle className="w-5 h-5" /> :
                    n.type === 'error' ? <AlertCircle className="w-5 h-5" /> :
-                   n.type === 'warning' ? <Bell className="w-5 h-5" /> :
-                   <Info className="w-5 h-5" />}
+                  n.type === 'warning' ? <AlertCircle className="w-5 h-5" /> :
+                  <Info className="w-5 h-5" />}
                 </div>
 
                 <div className="flex-1 min-w-0">
