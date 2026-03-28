@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Manrope", sans-serif;
+  --font-serif-display: "Playfair Display", serif;
+
+  /* Evri brand palette */
+  --color-primary: #0F72A6;
+  --color-secondary: #1E88C8;
+  --color-background-light: #F2F2F2;
+  --color-white: #FFFFFF;
+  --color-text-dark: #333333;
+  --color-text-medium: #A0A0A0;
+
+  /* Override Tailwind blue/indigo scales used throughout UI */
+  --color-blue-50: #EAF6FC;
+  --color-blue-100: #D5ECF8;
+  --color-blue-200: #B3DDF1;
+  --color-blue-300: #84C8E7;
+  --color-blue-400: #4FAED9;
+  --color-blue-500: #1E88C8;
+  --color-blue-600: #0F72A6;
+  --color-blue-700: #0C5E8A;
+  --color-blue-800: #0A4B6E;
+  --color-blue-900: #083A57;
+
+  --color-indigo-400: #4FAED9;
+  --color-indigo-500: #1E88C8;
+  --color-indigo-600: #0F72A6;
+  --color-indigo-700: #0C5E8A;
+  --color-indigo-800: #0A4B6E;
+
+  /* Custom Theme Tokens mapping to CSS variables */
+  --color-bg-app: var(--bg-app);
+  --color-card: var(--bg-card);
+  --color-main: var(--text-main);
+  --color-dim: var(--text-dim);
+
+  --radius-xl: 0.75rem;
+}
+
+:root {
+  --bg-app: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --text-main: #111827;
+  --text-dim: #6B7280;
+  --border-dim: rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.6);
+}
+
+@layer components {
+
+  .floating-label-input:focus-within label,
+  .floating-label-input input:not(:placeholder-shown)+label {
+    @apply -translate-y-6 scale-75 text-primary;
+  }
+
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+  }
+}
+
+body {
+  @apply font-display min-h-screen transition-colors duration-300;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.skeleton {
+  @apply bg-slate-500/10 relative overflow-hidden;
+}
+
+.skeleton::after {
+  content: "";
+  @apply absolute inset-0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
