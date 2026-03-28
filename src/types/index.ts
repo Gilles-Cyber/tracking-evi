@@ -24,6 +24,7 @@ export interface Shipment {
     sender_name?: string;
     sender_email?: string;
     sender_phone?: string;
+    route_waypoints?: string[];
 }
 
 export interface ChatMessage {
@@ -34,4 +35,3 @@ export interface ChatMessage {
     session_id: string;
     is_read: boolean;
 }
-

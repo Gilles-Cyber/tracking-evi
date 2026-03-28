@@ -30,6 +30,7 @@ create table if not exists public.shipments (
   sender_name text,
   sender_email text,
   sender_phone text,
+  route_waypoints jsonb default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -56,6 +57,7 @@ alter table public.shipments add column if not exists estimated_arrival date;
 alter table public.shipments add column if not exists sender_name text;
 alter table public.shipments add column if not exists sender_email text;
 alter table public.shipments add column if not exists sender_phone text;
+alter table public.shipments add column if not exists route_waypoints jsonb default '[]'::jsonb;
 alter table public.shipments add column if not exists created_at timestamptz not null default now();
 alter table public.shipments add column if not exists updated_at timestamptz not null default now();
 
@@ -478,7 +480,7 @@ end $$;
 insert into public.shipments (
   id, session_id, origin, dest, date, status, value, driver, progress, vehicle_type,
   admin_message, animation_speed, weight, dimensions, cargo_type, priority, hazardous,
-  estimated_arrival, sender_name, sender_email, sender_phone
+  estimated_arrival, sender_name, sender_email, sender_phone, route_waypoints
 )
 select
   'EVR-DEMO-001',
@@ -501,5 +503,6 @@ select
   now()::date + interval '2 day',
   'Demo Client',
   'demo@example.com',
-  '+33 6 00 00 00 00'
+  '+33 6 00 00 00 00',
+  '["Dijon, FR", "Clermont-Ferrand, FR"]'::jsonb
 where not exists (select 1 from public.shipments);

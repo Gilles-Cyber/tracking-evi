@@ -68,6 +68,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                 dimensions: selectedShipment.dimensions,
                 hazardous: selectedShipment.hazardous,
                 estimated_arrival: selectedShipment.estimated_arrival || null,
+                route_waypoints: selectedShipment.route_waypoints || [],
             }).eq('id', selectedShipment.id);
 
             if (error) throw error;
@@ -94,7 +95,8 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     const shipment = shipmentList.find(s => s.id === id);
                     if (!shipment) return prev;
                     
-                    const nextProgress = Math.min(shipment.progress + 1, 100);
+                    const simulationStep = Math.max(0.5, 100 / Math.max(10, shipment.animation_speed || 35));
+                    const nextProgress = Math.min(Number((shipment.progress + simulationStep).toFixed(2)), 100);
                     
                     // Sync to DB
                     supabase.from('shipments')
@@ -114,9 +116,66 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     }
                     return updated;
                 });
-            }, 3000);
+            }, 1000);
         }
     };
+
+    React.useEffect(() => {
+        const timer = setInterval(() => {
+            const pendingUpdates: { id: string; progress: number }[] = [];
+
+            setShipments((prev) => {
+                let changed = false;
+                const next = prev.map((shipment) => {
+                    const canAutoRun =
+                        shipment.id !== simulatingId &&
+                        (shipment.status === 'Transit' || shipment.status === 'Pending') &&
+                        shipment.progress < 100;
+
+                    if (!canAutoRun) return shipment;
+
+                    const step = Math.max(0.2, 100 / Math.max(10, shipment.animation_speed || 35));
+                    const nextProgress = Math.min(Number((shipment.progress + step).toFixed(2)), 100);
+
+                    if (nextProgress === shipment.progress) return shipment;
+
+                    changed = true;
+                    pendingUpdates.push({ id: shipment.id, progress: nextProgress });
+                    return { ...shipment, progress: nextProgress };
+                });
+
+                return changed ? next : prev;
+            });
+
+            if (pendingUpdates.length > 0) {
+                pendingUpdates.forEach(({ id, progress }) => {
+                    supabase.from('shipments').update({ progress }).eq('id', id).then();
+                });
+            }
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [setShipments, simulatingId]);
+
+    React.useEffect(() => {
+        if (!selectedShipment) return;
+        const freshShipment = shipments.find((shipment) => shipment.id === selectedShipment.id);
+        if (!freshShipment) return;
+
+        if (
+            freshShipment.progress !== selectedShipment.progress ||
+            freshShipment.status !== selectedShipment.status
+        ) {
+            setSelectedShipment((prev) => prev && prev.id === freshShipment.id
+                ? {
+                    ...prev,
+                    progress: freshShipment.progress,
+                    status: freshShipment.status,
+                    animation_speed: freshShipment.animation_speed,
+                }
+                : prev);
+        }
+    }, [shipments, selectedShipment]);
 
     React.useEffect(() => {
         return () => {
@@ -930,6 +989,58 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                 />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="p-5 rounded-2xl bg-slate-500/5 border border-dim space-y-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-[10px] font-black text-dim uppercase tracking-[0.2em] mb-1">
+                                                    {language === 'es' ? 'Route nodes' : 'Route nodes'}
+                                                </p>
+                                                <p className="text-[11px] text-dim/70">
+                                                    {language === 'es'
+                                                        ? 'Una parada por linea. Si lo dejas vacio, el mapa generara automaticamente un corredor suave que luego puedes modificar.'
+                                                        : 'One stop per line. Leave this empty and the map will generate a subtle smart corridor automatically, which you can still override here.'}
+                                                </p>
+                                            </div>
+                                            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600">
+                                                {(selectedShipment.route_waypoints || []).length} {language === 'es' ? 'stops' : 'stops'}
+                                            </span>
+                                        </div>
+
+                                        <textarea
+                                            value={(selectedShipment.route_waypoints || []).join('\n')}
+                                            onChange={(e) => setSelectedShipment({
+                                                ...selectedShipment,
+                                                route_waypoints: e.target.value
+                                                    .split('\n')
+                                                    .map((item) => item.trim())
+                                                    .filter(Boolean)
+                                            })}
+                                            placeholder={language === 'es'
+                                                ? 'Dijon, FR\nClermont-Ferrand, FR\nLimoges, FR'
+                                                : 'Dijon, FR\nClermont-Ferrand, FR\nLimoges, FR'}
+                                            className="w-full bg-slate-500/5 border border-dim rounded-xl px-4 py-3 text-sm font-medium text-main focus:border-blue-500 resize-none h-28 outline-none placeholder:text-dim/50"
+                                        />
+
+                                        {(selectedShipment.route_waypoints || []).length > 0 && (
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600">
+                                                    {selectedShipment.origin?.split(',')[0] || 'Origin'}
+                                                </span>
+                                                {(selectedShipment.route_waypoints || []).map((stop, index) => (
+                                                    <span
+                                                        key={`${stop}-${index}`}
+                                                        className="px-3 py-1.5 rounded-full bg-slate-500/5 border border-dim text-[10px] font-black uppercase tracking-widest text-dim"
+                                                    >
+                                                        {stop.split(',')[0]}
+                                                    </span>
+                                                ))}
+                                                <span className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600">
+                                                    {selectedShipment.dest?.split(',')[0] || 'Destination'}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

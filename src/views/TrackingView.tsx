@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
     MapPin, Box, Truck, Clock, AlertTriangle, CheckCircle2, Star, Share2, Info, 
-    ChevronRight, Wind, Globe, ArrowLeft, ArrowRight, Edit2, Plane, Ship
+    ChevronRight, Wind, Globe, ArrowLeft, ArrowRight, Edit2, Plane, Ship, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page, Shipment } from '../types';
 import Logo from '../components/ui/Logo';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ShipmentMap } from '../components/ui/ShipmentMap';
 
 interface TrackingViewProps {
     onNavigate: (page: Page) => void;
@@ -22,8 +23,29 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
     const activeId = shipmentId || id;
     const activeShipment = shipments.find(s => s.id === activeId) || shipments[0];
     const [alertsOpen, setAlertsOpen] = useState(true);
+    const [renderProgress, setRenderProgress] = useState(activeShipment?.progress || 0);
 
     if (!activeShipment) return <div className="min-h-screen flex items-center justify-center bg-bg-app text-main font-bold">{t('shipment_not_found')}</div>;
+
+    useEffect(() => {
+        setRenderProgress((prev) => {
+            if (Math.abs(prev - activeShipment.progress) < 0.2) return activeShipment.progress;
+            return prev;
+        });
+    }, [activeShipment.id, activeShipment.progress]);
+
+    useEffect(() => {
+        const target = Number(activeShipment.progress) || 0;
+        const timer = window.setInterval(() => {
+            setRenderProgress((prev) => {
+                const delta = target - prev;
+                if (Math.abs(delta) < 0.15) return target;
+                return prev + delta * 0.18;
+            });
+        }, 60);
+
+        return () => window.clearInterval(timer);
+    }, [activeShipment.progress]);
 
     const isTransit = activeShipment.status === 'Transit';
     const isErrorState = activeShipment.status === 'Alert' || activeShipment.status === 'Customs Hold' || activeShipment.status === 'Delayed' || activeShipment.status === 'Spoiled';
@@ -43,6 +65,54 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
             border: 'border-blue-600',
             borderLight: 'border-blue-600/20'
         };
+
+    const mapAccent = isErrorState
+        ? {
+            trace: '#ef4444',
+            bg: 'bg-red-500',
+            border: 'border-red-400',
+            glow: 'shadow-[0_0_28px_rgba(239,68,68,0.45)]'
+        }
+        : {
+            trace: '#38bdf8',
+            bg: 'bg-blue-500',
+            border: 'border-sky-300',
+            glow: 'shadow-[0_0_28px_rgba(56,189,248,0.45)]'
+        };
+
+    const routePhase = renderProgress >= 100
+        ? (language === 'es' ? 'Entrega completada' : 'Delivery completed')
+        : renderProgress >= 70
+            ? (language === 'es' ? 'Aproximación final' : 'Final approach')
+            : renderProgress >= 35
+                ? (language === 'es' ? 'Corredor principal' : 'Main corridor')
+                : (language === 'es' ? 'Salida de origen' : 'Origin departure');
+
+    const routeWaypoints = (activeShipment.route_waypoints || []).filter(Boolean);
+    const routeStops = [activeShipment.origin, ...routeWaypoints, activeShipment.dest].filter(Boolean);
+
+    const telemetry = [
+        {
+            label: language === 'es' ? 'Vehículo' : 'Vehicle',
+            value: activeShipment.vehicle_type === 'air'
+                ? (language === 'es' ? 'Aeronave' : 'Aircraft')
+                : activeShipment.vehicle_type === 'sea'
+                    ? (language === 'es' ? 'Buque' : 'Vessel')
+                    : (language === 'es' ? 'Camión' : 'Truck')
+        },
+        {
+            label: language === 'es' ? 'Cobertura' : 'Coverage',
+            value: `${Math.max(8, Math.round(renderProgress * 1.12))}%`
+        },
+        {
+            label: language === 'es' ? 'Phase' : 'Phase',
+            value: routePhase
+        },
+        {
+            label: language === 'es' ? 'Stops' : 'Stops',
+            value: String(routeStops.length)
+        },
+    ];
 
     const timelineSteps = [
         {
@@ -180,13 +250,13 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                     <div className="px-6 md:px-10 py-4 border-b border-dim bg-slate-500/5">
                         <div className="flex justify-between text-[11px] font-bold text-dim uppercase tracking-widest mb-2">
                             <span className={accent.text}>{activeShipment.origin}</span>
-                            <span>{activeShipment.progress}% {t('complete')}</span>
+                            <span>{Math.round(renderProgress)}% {t('complete')}</span>
                             <span className="text-right">{activeShipment.dest}</span>
                         </div>
                         <div className="h-2.5 w-full bg-slate-500/10  rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${activeShipment.progress}%` }}
+                                animate={{ width: `${renderProgress}%` }}
                                 className={`h-full ${accent.bg}`}
                             ></motion.div>
                         </div>
@@ -406,6 +476,150 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                         </div>
                     </div>
                 </motion.div>
+
+                {/* Live Route Map */}
+                <motion.section
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35, duration: 0.5, ease: 'easeOut' }}
+                    className="relative overflow-hidden rounded-[2rem] border border-dim bg-card shadow-xl"
+                >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,136,200,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(15,114,166,0.08),transparent_35%)] pointer-events-none" />
+
+                    <div className="relative z-10 p-6 md:p-8 border-b border-dim">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                            <div>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-500/5 border border-dim text-[10px] font-black uppercase tracking-[0.25em] text-blue-600 mb-4">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    {language === 'es' ? 'Mapa en vivo' : 'Live route map'}
+                                </div>
+                                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-main">
+                                    {language === 'es' ? 'Simulation temps réel du trajet' : 'Real-time route simulation'}
+                                </h2>
+                                <p className="text-sm text-dim mt-2 max-w-2xl">
+                                    {language === 'es'
+                                        ? 'Le véhicule affiché suit la configuration choisie par l’administrateur et la progression actuelle de l’expédition.'
+                                        : 'The vehicle below follows the transport mode selected by the admin and the current shipment progress.'}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:min-w-[520px]">
+                                {telemetry.map((item) => (
+                                    <div key={item.label} className="rounded-2xl border border-dim bg-slate-500/5 px-4 py-3">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-dim mb-1">{item.label}</p>
+                                        <p className="text-sm font-bold text-main">{item.value}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative z-10 grid lg:grid-cols-[minmax(0,1.6fr)_360px]">
+                        <div className="p-4 md:p-6">
+                            <div className="relative h-[320px] md:h-[460px] overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                <ShipmentMap
+                                    origin={activeShipment.origin}
+                                    dest={activeShipment.dest}
+                                    waypoints={routeWaypoints}
+                                    progress={renderProgress}
+                                    simMode={activeShipment.vehicle_type}
+                                    isSpoiled={activeShipment.status === 'Spoiled'}
+                                    accent={mapAccent}
+                                />
+
+                                <div className="pointer-events-none absolute left-4 top-4 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur-md">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                        {language === 'es' ? 'Signal' : 'Signal'}
+                                    </p>
+                                    <p className="mt-1 text-sm font-bold text-white">{routePhase}</p>
+                                </div>
+
+                                <div className="pointer-events-none absolute right-4 bottom-4 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 backdrop-blur-md">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+                                        {language === 'es' ? 'Progreso' : 'Progress'}
+                                    </p>
+                                    <p className="mt-1 text-lg font-black text-white">{Math.round(renderProgress)}%</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t lg:border-t-0 lg:border-l border-dim p-6 md:p-8 bg-slate-500/5">
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-dim bg-card p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600 mb-2">
+                                        {language === 'es' ? 'Route intelligence' : 'Route intelligence'}
+                                    </p>
+                                    <p className="text-sm font-bold text-main">
+                                        {language === 'es'
+                                            ? 'Le mouvement du véhicule est calculé à partir du pourcentage de progression et du type de transport défini dans le dashboard admin.'
+                                            : 'Vehicle movement is derived from shipment progress and the transport mode configured in the admin dashboard.'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-dim bg-card p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-dim mb-3">
+                                        {language === 'es' ? 'Live corridor' : 'Live corridor'}
+                                    </p>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-dim">{activeShipment.origin}</span>
+                                            <span className={`font-black ${accent.text}`}>{Math.round(renderProgress)}%</span>
+                                            <span className="text-dim text-right">{activeShipment.dest}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-slate-500/10 overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${renderProgress}%` }}
+                                                transition={{ duration: 1.1, ease: 'easeOut' }}
+                                                className={`h-full ${accent.bg}`}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-dim bg-card p-5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-dim mb-3">
+                                        {language === 'es' ? 'Route nodes' : 'Route nodes'}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {routeStops.map((stop, index) => (
+                                            <span
+                                                key={`${stop}-${index}`}
+                                                className={`px-3 py-2 rounded-full border text-[10px] font-black uppercase tracking-[0.16em] ${
+                                                    index === 0 || index === routeStops.length - 1
+                                                        ? 'border-blue-500/30 bg-blue-500/10 text-blue-600'
+                                                        : 'border-dim bg-slate-500/5 text-dim'
+                                                }`}
+                                            >
+                                                {stop.split(',')[0].trim()}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-dim bg-card p-5">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-dim">
+                                                {language === 'es' ? 'Integrity' : 'Integrity'}
+                                            </p>
+                                            <p className="text-sm font-bold text-main">
+                                                {language === 'es' ? 'Position surveillée' : 'Position monitored'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-dim leading-relaxed">
+                                        {language === 'es'
+                                            ? 'Les changements de statut, l’avancement et le véhicule sélectionné se reflètent directement dans cette carte pour une sensation de suivi plus réelle.'
+                                            : 'Status changes, progress updates, and the selected vehicle are reflected directly on this map for a more realistic tracking experience.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.section>
 
                 {/* Bottom Actions */}
                 <motion.div

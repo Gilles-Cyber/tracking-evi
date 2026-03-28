@@ -43,16 +43,45 @@ async function fetchCoords(location: string): Promise<[number, number]> {
     return [20, 0];
 }
 
+function buildSmartCorridor(start: [number, number], end: [number, number]) {
+    const midLat = (start[0] + end[0]) / 2;
+    const midLng = (start[1] + end[1]) / 2;
+    const dLat = end[0] - start[0];
+    const dLng = end[1] - start[1];
+    const distance = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
+
+    // Perpendicular vector for a subtle premium-looking curve.
+    const normalLat = -dLng / distance;
+    const normalLng = dLat / distance;
+    const curveStrength = Math.min(6, Math.max(1.2, distance * 0.12));
+
+    const curveA: [number, number] = [
+        start[0] + dLat * 0.28 + normalLat * curveStrength,
+        start[1] + dLng * 0.28 + normalLng * curveStrength,
+    ];
+    const curveB: [number, number] = [
+        midLat + normalLat * (curveStrength * 0.55),
+        midLng + normalLng * (curveStrength * 0.55),
+    ];
+    const curveC: [number, number] = [
+        start[0] + dLat * 0.74 - normalLat * (curveStrength * 0.35),
+        start[1] + dLng * 0.74 - normalLng * (curveStrength * 0.35),
+    ];
+
+    return [start, curveA, curveB, curveC, end];
+}
+
 interface ShipmentMapProps {
     origin: string;
     dest: string;
+    waypoints?: string[];
     progress: number;
     simMode: 'ground' | 'air' | 'sea';
     isSpoiled: boolean;
     accent: { trace: string; bg: string; border: string; glow: string };
 }
 
-export function ShipmentMap({ origin, dest, progress, simMode, isSpoiled, accent }: ShipmentMapProps) {
+export function ShipmentMap({ origin, dest, waypoints = [], progress, simMode, isSpoiled, accent }: ShipmentMapProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapInstance = useRef<L.Map | null>(null);
     const markerRef = useRef<L.Marker | null>(null);
@@ -60,16 +89,29 @@ export function ShipmentMap({ origin, dest, progress, simMode, isSpoiled, accent
     const cityMarkersRef = useRef<L.Marker[]>([]);
     const lastBoundsKey = useRef<string | null>(null);
 
-    const [coords, setCoords] = React.useState<{ start: [number, number]; end: [number, number] } | null>(null);
+    const [coords, setCoords] = React.useState<{ routeCoords: [number, number][]; routeLabels: string[] } | null>(null);
 
     useEffect(() => {
         async function loadCoords() {
-            const start = await fetchCoords(origin);
-            const end = await fetchCoords(dest);
-            setCoords({ start, end });
+            const cleanedWaypoints = waypoints.map((item) => item.trim()).filter(Boolean);
+            const hasManualWaypoints = cleanedWaypoints.length > 0;
+            const routeLabels = hasManualWaypoints
+                ? [origin, ...cleanedWaypoints, dest].filter(Boolean)
+                : [origin, 'Auto corridor A', 'Auto corridor B', 'Auto corridor C', dest].filter(Boolean);
+
+            let routeCoords: [number, number][];
+            if (hasManualWaypoints) {
+                routeCoords = await Promise.all(routeLabels.map((label) => fetchCoords(label)));
+            } else {
+                const start = await fetchCoords(origin);
+                const end = await fetchCoords(dest);
+                routeCoords = buildSmartCorridor(start, end);
+            }
+
+            setCoords({ routeCoords, routeLabels });
         }
         loadCoords();
-    }, [origin, dest]);
+    }, [origin, dest, waypoints]);
 
     useEffect(() => {
         if (!mapContainer.current) return;
@@ -91,8 +133,11 @@ export function ShipmentMap({ origin, dest, progress, simMode, isSpoiled, accent
 
         if (!coords) return;
 
-        const startCoords = coords.start;
-        const endCoords = coords.end;
+        const routeCoords = coords.routeCoords;
+        const routeLabels = coords.routeLabels;
+        if (routeCoords.length < 2) return;
+        const startCoords = routeCoords[0];
+        const endCoords = routeCoords[routeCoords.length - 1];
 
         // Clear existing city markers if they exist
         cityMarkersRef.current.forEach(m => m.remove());
@@ -113,39 +158,53 @@ export function ShipmentMap({ origin, dest, progress, simMode, isSpoiled, accent
             iconAnchor: [30, 15]
         });
 
-        cityMarkersRef.current.push(L.marker(startCoords, { icon: cityIcon(origin) }).addTo(mapInstance.current));
-        cityMarkersRef.current.push(L.marker(endCoords, { icon: cityIcon(dest) }).addTo(mapInstance.current));
+        routeCoords.forEach((point, index) => {
+            const rawLabel = routeLabels[index] || '';
+            if (rawLabel.startsWith('Auto corridor')) return;
+            const compactLabel = rawLabel.split(',')[0].trim();
+            cityMarkersRef.current.push(L.marker(point, { icon: cityIcon(compactLabel) }).addTo(mapInstance.current));
+        });
 
         // Draw or Update Route
         if (!polylineRef.current) {
-            polylineRef.current = L.polyline([startCoords, endCoords], {
+            polylineRef.current = L.polyline(routeCoords, {
                 color: accent.trace,
                 weight: 3,
                 opacity: 0.6,
                 dashArray: '10, 10'
             }).addTo(mapInstance.current);
         } else {
-            polylineRef.current.setLatLngs([startCoords, endCoords]);
+            polylineRef.current.setLatLngs(routeCoords);
         }
 
-        // Calculate Position based on progress - Ensure no NaN
+        // Calculate vehicle position across the full route rather than a single straight segment.
         const safeProgress = Math.max(0, Math.min(100, Number(progress) || 0));
-        const lat = startCoords[0] + (endCoords[0] - startCoords[0]) * (safeProgress / 100);
-        const lng = startCoords[1] + (endCoords[1] - startCoords[1]) * (safeProgress / 100);
+        const segments = routeCoords.slice(0, -1).map((point, index) => {
+            const next = routeCoords[index + 1];
+            return {
+                from: point,
+                to: next,
+                length: L.latLng(point[0], point[1]).distanceTo(L.latLng(next[0], next[1]))
+            };
+        });
+        const totalDistance = segments.reduce((sum, segment) => sum + segment.length, 0) || 1;
+        let distanceCursor = (safeProgress / 100) * totalDistance;
+        let lat = startCoords[0];
+        let lng = startCoords[1];
+
+        for (const segment of segments) {
+            if (distanceCursor <= segment.length) {
+                const ratio = segment.length === 0 ? 0 : distanceCursor / segment.length;
+                lat = segment.from[0] + (segment.to[0] - segment.from[0]) * ratio;
+                lng = segment.from[1] + (segment.to[1] - segment.from[1]) * ratio;
+                break;
+            }
+            distanceCursor -= segment.length;
+            lat = segment.to[0];
+            lng = segment.to[1];
+        }
 
         if (isNaN(lat) || isNaN(lng)) return;
-
-        // Draw or Update Route
-        if (!polylineRef.current) {
-            polylineRef.current = L.polyline([startCoords, endCoords], {
-                color: accent.trace,
-                weight: 3,
-                opacity: 0.6,
-                dashArray: '10, 10'
-            }).addTo(mapInstance.current);
-        } else {
-            polylineRef.current.setLatLngs([startCoords, endCoords]);
-        }
 
         // Custom Vehicle Icon HTML
         const iconHtml = `
@@ -184,14 +243,14 @@ export function ShipmentMap({ origin, dest, progress, simMode, isSpoiled, accent
         }
 
         // Zoom to fit route only if origin or dest changed
-        const boundsKey = `${origin}-${dest}`;
+        const boundsKey = routeLabels.join('|');
         if (mapInstance.current && boundsKey !== lastBoundsKey.current) {
-            const bounds = L.latLngBounds([startCoords, endCoords]);
+            const bounds = L.latLngBounds(routeCoords);
             mapInstance.current.fitBounds(bounds, { padding: [100, 100], duration: 1.5 });
             lastBoundsKey.current = boundsKey;
         }
 
-    }, [origin, dest, progress, simMode, isSpoiled, accent, coords]);
+    }, [origin, dest, waypoints, progress, simMode, isSpoiled, accent, coords]);
 
     return (
         <div className="w-full h-full relative">
