@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
     MapPin, Box, Truck, Clock, AlertTriangle, CheckCircle2, Star, Share2, Info, 
-    ChevronRight, Wind, Globe, ArrowLeft, ArrowRight, Edit2, Plane, Ship,
-    ShieldCheck, Loader2, Fingerprint, Lock, Shield, FileText, Download, Cpu
+    ChevronRight, Wind, Globe, ArrowLeft, ArrowRight, Edit2, Plane, Ship
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page, Shipment } from '../types';
@@ -23,8 +22,6 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
     const activeId = shipmentId || id;
     const activeShipment = shipments.find(s => s.id === activeId) || shipments[0];
     const [alertsOpen, setAlertsOpen] = useState(true);
-    const [showManifest, setShowManifest] = useState(false);
-    const [verifying, setVerifying] = useState(false);
 
     if (!activeShipment) return <div className="min-h-screen flex items-center justify-center bg-bg-app text-main font-bold">{t('shipment_not_found')}</div>;
 
@@ -103,13 +100,6 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                 </div>
                 
                 <div className="flex items-center gap-2 sm:gap-4 font-semibold">
-                    <button 
-                        onClick={() => onNavigate('tracking' as any)} 
-                        className={`${accent.text} transition-colors hidden lg:block hover:underline text-sm`}
-                    >
-                        {t('track_another_shipment')}
-                    </button>
-                    
                     <button
                         onClick={toggleLanguage}
                         className="p-2 rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-main transition-all border border-dim flex items-center gap-1.5"
@@ -120,7 +110,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                 </div>
             </motion.header>
 
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-16 space-y-6">
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-16 pb-32 space-y-6">
 
                 {/* Main Card */}
                 <motion.div
@@ -423,17 +413,7 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
                     className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                >                    <button 
-                        onClick={() => {
-                            setVerifying(true);
-                            setShowManifest(true);
-                            setTimeout(() => setVerifying(false), 2500);
-                        }}
-                        className={`flex items-center justify-center gap-3 py-4 px-6 rounded-xl border-2 ${accent.border} ${accent.text} font-semibold hover:${accent.bgLight} transition-all bg-card shadow-sm group relative overflow-hidden`}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                        {t('docs_douane')}
-                    </button>
+                >
                     <button 
                         onClick={() => onNavigate('tracking' as any)}
                         className="flex items-center justify-center gap-3 py-4 px-6 rounded-xl border border-dim text-dim font-semibold hover:bg-slate-500/5 transition-all bg-card shadow-sm"
@@ -441,147 +421,6 @@ export function TrackingView({ onNavigate, onLogoClick, shipmentId, shipments }:
                         {t('track_another_shipment')}
                     </button>
                 </motion.div>
-
-                {/* Quantum Manifest Modal */}
-                <AnimatePresence>
-                    {showManifest && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 sm:px-6">
-                            <motion.div 
-                                initial={{ opacity: 0 }} 
-                                animate={{ opacity: 1 }} 
-                                exit={{ opacity: 0 }} 
-                                onClick={() => setShowManifest(false)}
-                                className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
-                            />
-                            
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                                className="relative w-full max-w-4xl bg-card border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
-                            >
-                                {/* Left Side: Document Preview (Simplified) */}
-                                <div className="w-full md:w-1/2 bg-slate-100  p-8 flex flex-col">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <Logo size={40} />
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{t('digital_manifest')}</p>
-                                            <p className="text-[10px] font-bold text-dim uppercase">GX-{activeId?.slice(0, 8)}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex-1 space-y-6">
-                                        <div className="space-y-1">
-                                            <p className="text-[9px] font-bold text-dim uppercase tracking-widest">{t('shipment_origin')}</p>
-                                            <p className="text-sm font-black text-main uppercase">{activeShipment.origin}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-[9px] font-bold text-dim uppercase tracking-widest">{t('consignee_destination')}</p>
-                                            <p className="text-sm font-black text-main uppercase">{activeShipment.dest}</p>
-                                        </div>
-                                        <div className="pt-4 border-t border-dim/20 grid grid-cols-2 gap-4">
-                                            <div>
-                                                <p className="text-[9px] font-bold text-dim uppercase">{t('net_weight')}</p>
-                                                <p className="text-xs font-black">{activeShipment.weight || 100} KG</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-bold text-dim uppercase">{t('cargo_code')}</p>
-                                                <p className="text-xs font-black">{activeShipment.cargo_type || 'EL-40'}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mt-8 p-4 rounded-xl bg-slate-500/5 border border-dim/10 border-dashed relative">
-                                            <p className="text-[8px] font-mono text-dim leading-tight opacity-50">
-                                                LOG_INIT: SHA-256 ENCRYPTION STARTING...<br/>
-                                                VERIFYING BLOCKCHAIN NODE 04...<br/>
-                                                ACCESS_GRANTED: LEVEL_7_AUTH_REQUIRED
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-8 flex items-center justify-between text-main/40">
-                                        <div className="flex gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                        </div>
-                                        <p className="text-[9px] font-mono">GLOBAL_XN_CORE_V4</p>
-                                    </div>
-                                </div>
-
-                                {/* Right Side: Security Controls */}
-                                <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center items-center bg-card border-l border-dim relative">
-                                    <div className="absolute top-8 right-8">
-                                        <button onClick={() => setShowManifest(false)} className="p-2 rounded-full hover:bg-slate-500/10 text-dim transition-colors">
-                                            <ArrowRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-
-                                    <AnimatePresence mode="wait">
-                                        {verifying ? (
-                                            <motion.div 
-                                                key="verifying"
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                exit={{ opacity: 0, scale: 1.1 }}
-                                                className="text-center space-y-6"
-                                            >
-                                                <div className="relative">
-                                                    <Fingerprint className="w-20 h-20 text-blue-500 mx-auto" />
-                                                    <motion.div 
-                                                        animate={{ y: [0, 80, 0] }}
-                                                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                                                        className="absolute top-0 left-0 right-0 h-0.5 bg-blue-400/60 shadow-[0_0_15px_rgba(96,165,250,0.8)]"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-xl font-black tracking-tighter text-main mb-1 uppercase">{t('biometric_scan')}</h3>
-                                                    <p className="text-xs text-dim font-bold tracking-widest uppercase animate-pulse">{t('verifying_identity')}</p>
-                                                </div>
-                                            </motion.div>
-                                        ) : (
-                                            <motion.div 
-                                                key="ready"
-                                                initial={{ opacity: 0, scale: 0.9 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="text-center space-y-8 w-full"
-                                            >
-                                                <div className="w-20 h-20 rounded-[2rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto shadow-2xl shadow-emerald-500/10">
-                                                    <ShieldCheck className="w-10 h-10 text-emerald-500" />
-                                                </div>
-                                                
-                                                <div className="space-y-2">
-                                                    <h3 className="text-2xl font-black tracking-tighter text-main uppercase">{t('quantum_secured')}</h3>
-                                                    <p className="text-xs text-dim leading-relaxed">{t('quantum_secured_desc')}</p>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 gap-3 w-full">
-                                                    <button className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-transform">
-                                                        <Download className="w-4 h-4" /> {t('download_signed_pdf')}
-                                                    </button>
-                                                    <button className="w-full flex items-center justify-center gap-3 py-4 border border-dim text-main rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-500/5 transition-colors">
-                                                        <FileText className="w-4 h-4" /> {t('share_secure_link')}
-                                                    </button>
-                                                </div>
-
-                                                <div className="flex items-center justify-center gap-4 pt-4 border-t border-dim">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Lock className="w-3 h-3 text-emerald-500" />
-                                                        <span className="text-[8px] font-bold text-dim uppercase">{t('end_to_end_encrypted')}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Cpu className="w-3 h-3 text-blue-500" />
-                                                        <span className="text-[8px] font-bold text-dim uppercase">{t('hardware_signed')}</span>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
 
             </main>
         </div>

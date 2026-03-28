@@ -149,11 +149,11 @@ const WireframeBox = ({ l, w, h }: { l: number; w: number; h: number }) => {
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       >
         {/* Bottom face */}
-        <polygon points={poly([pts.fl, pts.es, pts.br, pts.bl])} fill="rgba(59,130,246,.05)" stroke="#93c5fd" strokeWidth="1" />
+        <polygon points={poly([pts.fl, pts.fr, pts.br, pts.bl])} fill="rgba(59,130,246,.05)" stroke="#93c5fd" strokeWidth="1" />
         {/* Right face */}
-        <polygon points={poly([pts.es, pts.br, pts.tbr, pts.tfr])} fill="rgba(59,130,246,.06)" stroke="#60a5fa" strokeWidth="1.2" />
+        <polygon points={poly([pts.fr, pts.br, pts.tbr, pts.tfr])} fill="rgba(59,130,246,.06)" stroke="#60a5fa" strokeWidth="1.2" />
         {/* Front face */}
-        <polygon points={poly([pts.fl, pts.es, pts.tfr, pts.tfl])} fill="rgba(59,130,246,.08)" stroke="#3b82f6" strokeWidth="1.5" />
+        <polygon points={poly([pts.fl, pts.fr, pts.tfr, pts.tfl])} fill="rgba(59,130,246,.08)" stroke="#3b82f6" strokeWidth="1.5" />
         {/* Top face */}
         <polygon points={poly([pts.tfl, pts.tfr, pts.tbr, pts.tbl])} fill="rgba(59,130,246,.12)" stroke="#3b82f6" strokeWidth="1.5" />
         {/* Dimension dashes */}

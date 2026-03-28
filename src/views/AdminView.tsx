@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as MapIcon, Activity, X, CheckCircle, Package, Plane, Ship, ChevronRight, ChevronDown, Menu, Loader2, Wind, User, Mail, Phone, Globe, Plus, LogOut, Truck, MapPin, Search, Calendar, Info, Navigation, ArrowRight } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as MapIcon, Activity, X, CheckCircle, Package, Plane, Ship, ChevronRight, ChevronDown, Menu, Loader2, Wind, User, Mail, Phone, Globe, Plus, LogOut, Truck, MapPin, Search, Calendar, Info, Navigation, ArrowRight, Home, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Logo from '../components/ui/Logo';
 import { Page, Shipment } from '../types';
@@ -33,6 +33,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     // User Management states
     const [profiles, setProfiles] = useState<any[]>([]);
     const [profilesLoading, setProfilesLoading] = useState(false);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
     const [footerSettings, setFooterSettings] = useState({
         company_name: 'Evri Logistics',
         phone: '+1 (000) 123-4567',
@@ -191,6 +192,16 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
         }
     };
 
+    const handleCopyTracking = async (id: string) => {
+        try {
+            await navigator.clipboard.writeText(id);
+            setCopiedId(id);
+            setTimeout(() => setCopiedId(null), 2000);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+    };
+
     const getVehicleIcon = (type: string, className: string = "w-5 h-5") => {
         if (type === 'air') return <Plane className={className} />;
         if (type === 'sea') return <Ship className={className} />;
@@ -201,6 +212,15 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
         const key = status.toLowerCase() as any;
         return t(key) || status;
     };
+
+    const statusCounts = statusOptions.reduce((acc: Record<string, number>, s) => {
+        acc[s] = shipments.filter(sh => sh.status === s).length;
+        return acc;
+    }, {});
+    const totalShipments = shipments.length;
+    const deliveredCount = shipments.filter(s => s.status === 'Delivered').length;
+    const onTimeRate = totalShipments ? Math.round((deliveredCount / totalShipments) * 100) : 0;
+    const recentShipments = shipments.slice(0, 6);
 
 
     return (
@@ -215,30 +235,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                     >
                         <Menu className="w-5 h-5" />
-                        <AnimatePresence>
-                            {isMenuOpen && (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute left-0 mt-4 w-48 bg-card border border-dim rounded-2xl shadow-2xl py-2 overflow-hidden z-[60]"
-                                >
-                                    <button onClick={() => onNavigate('home')} className="w-full text-left px-4 py-3 text-sm font-bold text-main hover:bg-slate-500/10 transition-colors flex items-center gap-2">
-                                        <Logo size={16} /> {t('home_view')}
-                                    </button>
-                                    <button onClick={() => { setActiveTab('users'); setIsMenuOpen(false); }} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
-                                        <User className="w-4 h-4" /> {t('users')}
-                                    </button>
-                                    <button onClick={() => onNavigate('shipment')} className="w-full text-left px-4 py-3 text-sm font-bold text-blue-500 hover:bg-blue-500/10 transition-colors flex items-center gap-2">
-                                        <Plus className="w-4 h-4" /> {t('ship')}
-                                    </button>
-                                    <div className="border-t border-dim my-1"></div>
-                                    <button onClick={onLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2">
-                                        <LogOut className="w-4 h-4" /> {t('logout')}
-                                    </button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
                     </button>
                     <div className="flex items-center gap-2">
                         <Logo size={32} />
@@ -251,6 +247,12 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         className="hidden md:flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
                     >
                         <Plus className="w-4 h-4" /> {t('ship')}
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('users')}
+                        className="hidden md:flex items-center gap-2 bg-card border border-dim text-main px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-500/10 transition-all"
+                    >
+                        <User className="w-4 h-4 text-blue-500" /> {t('users')}
                     </button>
                     <div className="hidden md:flex items-center px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500  text-xs font-bold gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
@@ -266,6 +268,78 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                     </div>
                 </div>
             </header>
+
+            <AnimatePresence>
+                {isMenuOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60]"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                        <motion.aside
+                            initial={{ x: -320 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: -320 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+                            className="fixed top-0 left-0 h-full w-[300px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white z-[70] shadow-2xl border-r border-white/10"
+                        >
+                            <div className="p-6 flex items-center justify-between border-b border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <Logo size={28} />
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-200/80">{t('control_center')}</p>
+                                        <p className="text-sm font-semibold text-white/80">{language === 'es' ? 'Panel Admin' : 'Admin Panel'}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsMenuOpen(false)} className="p-2 rounded-xl hover:bg-white/10">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="p-5 space-y-6">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Main</p>
+                                    <button onClick={() => { setActiveTab('dashboard'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                        <LayoutDashboard className="w-4 h-4 text-blue-300" /> {t('control_center')}
+                                    </button>
+                                    <button onClick={() => { setActiveTab('analytics'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                        <TrendingUp className="w-4 h-4 text-blue-300" /> {language === 'es' ? 'Analítica' : 'Analytics'}
+                                    </button>
+                                    <button onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                        <Settings className="w-4 h-4 text-blue-300" /> {t('settings')}
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Actions</p>
+                                    <button onClick={() => { onNavigate('shipment'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 transition-colors text-sm font-semibold">
+                                        <Plus className="w-4 h-4 text-blue-200" /> {t('ship')}
+                                    </button>
+                                    <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                        <Home className="w-4 h-4 text-blue-300" /> {t('home')}
+                                    </button>
+                                </div>
+
+                                <div className="pt-4 border-t border-white/10 space-y-2">
+                                    <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/10 text-red-200 transition-colors text-sm font-semibold">
+                                        <LogOut className="w-4 h-4" /> {t('logout')}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="p-5 mt-auto border-t border-white/10">
+                                <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-blue-200/80">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    {t('system_health')}
+                                </div>
+                            </div>
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
 
             <main className="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32 lg:pb-8 mt-20">
                 {/* USERS TAB Content */}
@@ -489,8 +563,20 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                                 filteredShipments.map((shipment) => (
                                                     <motion.tr key={shipment.id} layout initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="hover:bg-slate-50/80 transition-colors group cursor-pointer" onClick={() => { setSelectedShipment({ ...shipment }); setSaveError(null); }}>
                                                         <td className="px-6 py-5">
-                                                            <p className="font-bold text-slate-800 mb-0.5 group-hover:text-blue-500 transition-colors">{shipment.id}</p>
-                                                            <p className="text-xs text-slate-400 font-medium">{shipment.driver}</p>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-bold text-slate-800 group-hover:text-blue-500 transition-colors">{shipment.id}</p>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); handleCopyTracking(shipment.id); }}
+                                                                    className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                                                                    title="Copy tracking code"
+                                                                >
+                                                                    <Copy className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                {copiedId === shipment.id && (
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Copied</span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-slate-400 font-medium mt-0.5">{shipment.driver}</p>
                                                         </td>
                                                         <td className="px-6 py-5">
                                                             <div className="flex items-center gap-3 text-sm">
@@ -525,6 +611,86 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                         </AnimatePresence>
                                     </tbody>
                                 </table>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {/* ANALYTICS TAB */}
+                {activeTab === 'analytics' && (
+                    <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-[minmax(140px,auto)]">
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="lg:col-span-2 rounded-[2rem] bg-white border border-slate-200 shadow-sm p-6 lg:p-8"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                                    {language === 'es' ? 'Rendimiento' : 'Performance'}
+                                </h3>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                    {language === 'es' ? 'Últimos 30 días' : 'Last 30 days'}
+                                </span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t('total_shipments')}</p>
+                                    <p className="text-3xl font-display font-bold text-slate-800">{totalShipments}</p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t('delivered')}</p>
+                                    <p className="text-3xl font-display font-bold text-emerald-600">{deliveredCount}</p>
+                                </div>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{language === 'es' ? 'Tasa a tiempo' : 'On-time rate'}</p>
+                                    <p className="text-3xl font-display font-bold text-blue-600">{onTimeRate}%</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-8">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">{language === 'es' ? 'Distribución por estado' : 'Status distribution'}</p>
+                                <div className="space-y-3">
+                                    {statusOptions.map((s) => {
+                                        const count = statusCounts[s] || 0;
+                                        const pct = totalShipments ? Math.round((count / totalShipments) * 100) : 0;
+                                        return (
+                                            <div key={s} className="flex items-center gap-4">
+                                                <div className="w-28 text-[10px] font-black uppercase tracking-widest text-slate-500">{getStatusTranslation(s)}</div>
+                                                <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${pct}%` }} />
+                                                </div>
+                                                <div className="w-12 text-right text-[10px] font-black text-slate-500">{pct}%</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="rounded-[2rem] bg-white border border-slate-200 shadow-sm p-6 lg:p-8"
+                        >
+                            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-blue-500" />
+                                {language === 'es' ? 'Últimos envíos' : 'Recent shipments'}
+                            </h3>
+                            <div className="space-y-3">
+                                {recentShipments.length === 0 ? (
+                                    <p className="text-sm text-slate-400">{t('not_found')}</p>
+                                ) : (
+                                    recentShipments.map((shipment) => (
+                                        <div key={shipment.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-100 bg-slate-50">
+                                            <div>
+                                                <p className="text-xs font-black text-slate-800">{shipment.id}</p>
+                                                <p className="text-[10px] text-slate-400">{shipment.origin} → {shipment.dest}</p>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600">{getStatusTranslation(shipment.status)}</span>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </motion.div>
                     </div>
@@ -668,7 +834,19 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-black text-dim uppercase tracking-[0.2em] mb-0.5">{t('shipment_id_label')}</p>
-                                                <span className="text-sm font-black text-main tracking-tight uppercase">{selectedShipment.id}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-black text-main tracking-tight uppercase">{selectedShipment.id}</span>
+                                                    <button
+                                                        onClick={() => handleCopyTracking(selectedShipment.id)}
+                                                        className="p-1.5 rounded-lg border border-dim text-dim hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors"
+                                                        title="Copy tracking code"
+                                                    >
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    {copiedId === selectedShipment.id && (
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500">Copied</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-6">
