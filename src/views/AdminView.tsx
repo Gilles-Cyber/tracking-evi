@@ -3,8 +3,6 @@ import { AlertTriangle, TrendingUp, Clock, LayoutDashboard, Settings, Map as Map
 import { motion, AnimatePresence } from 'motion/react';
 import Logo from '../components/ui/Logo';
 import { Page, Shipment } from '../types';
-import { AdminStatCard } from '../components/ui/AdminStatCard';
-import { AdminNavItem } from '../components/ui/AdminNavItem';
 import { supabase } from '../lib/supabase';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -280,53 +278,75 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     const deliveredCount = shipments.filter(s => s.status === 'Delivered').length;
     const onTimeRate = totalShipments ? Math.round((deliveredCount / totalShipments) * 100) : 0;
     const recentShipments = shipments.slice(0, 6);
+    const sidebarButtonClass = "w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors text-sm font-semibold";
 
 
     return (
         <div className="relative flex h-auto min-h-screen w-full flex-col font-sans selection:bg-blue-500/30 bg-bg-app text-main transition-colors duration-300">
+            <button
+                className="lg:hidden fixed top-4 left-4 z-[80] text-main hover:text-blue-500 transition-colors p-3 rounded-2xl bg-card/90 backdrop-blur-xl border border-dim shadow-lg"
+                onClick={() => setIsMenuOpen(true)}
+            >
+                <Menu className="w-5 h-5" />
+            </button>
 
-
-
-            <header className="flex items-center bg-card/80 backdrop-blur-xl border-b border-dim py-4 px-6 justify-between fixed top-0 left-0 right-0 z-50">
-                <div className="flex items-center gap-4">
-                    <button 
-                        className="text-main hover:text-blue-500 transition-colors p-2 rounded-xl hover:bg-slate-500/10 relative" 
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        <Menu className="w-5 h-5" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <Logo size={32} />
-                        <h2 className="text-main text-lg font-bold tracking-tight">Evri<span className="text-blue-500 font-normal">{language === 'es' ? ' Admin' : ' Admin'}</span></h2>
+            <aside className="hidden lg:flex fixed top-0 left-0 h-full w-[300px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white z-[60] shadow-2xl border-r border-white/10 flex-col">
+                <div className="p-6 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                        <Logo size={28} />
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-200/80">{t('control_center')}</p>
+                            <p className="text-sm font-semibold text-white/80">{language === 'es' ? 'Panel Admin' : 'Admin Panel'}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-4 items-center">
-                    <button 
-                        onClick={() => onNavigate('shipment')}
-                        className="hidden md:flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
-                    >
-                        <Plus className="w-4 h-4" /> {t('ship')}
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('users')}
-                        className="hidden md:flex items-center gap-2 bg-card border border-dim text-main px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-500/10 transition-all"
-                    >
-                        <User className="w-4 h-4 text-blue-500" /> {t('users')}
-                    </button>
-                    <div className="hidden md:flex items-center px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500  text-xs font-bold gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                        {t('system_health')}
-                    </div>
-                    
-                    <button onClick={() => setLanguage(language === 'en' ? 'es' : 'en')} className="p-2 rounded-full bg-slate-500/5 text-dim hover:text-main transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest pl-3">
-                        <Globe className="w-4 h-4 text-blue-500" /> {language === 'en' ? 'ES' : 'EN'}
-                    </button>
 
-                    <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-dim hover:border-blue-500 transition-colors cursor-pointer">
-                        <img className="w-full h-full object-cover" src="https://picsum.photos/seed/admin/100/100" alt="Admin" referrerPolicy="no-referrer" />
+                <div className="p-5 space-y-6 flex-1 overflow-y-auto">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Main</p>
+                        <button onClick={() => setActiveTab('dashboard')} className={`${sidebarButtonClass} ${activeTab === 'dashboard' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
+                            <LayoutDashboard className="w-4 h-4 text-blue-300" /> {t('control_center')}
+                        </button>
+                        <button onClick={() => setActiveTab('users')} className={`${sidebarButtonClass} ${activeTab === 'users' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
+                            <User className="w-4 h-4 text-blue-300" /> {t('users')}
+                        </button>
+                        <button onClick={() => setActiveTab('analytics')} className={`${sidebarButtonClass} ${activeTab === 'analytics' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
+                            <TrendingUp className="w-4 h-4 text-blue-300" /> {language === 'es' ? 'Analítica' : 'Analytics'}
+                        </button>
+                        <button onClick={() => setActiveTab('settings')} className={`${sidebarButtonClass} ${activeTab === 'settings' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
+                            <Settings className="w-4 h-4 text-blue-300" /> {t('settings')}
+                        </button>
+                    </div>
+
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Actions</p>
+                        <button onClick={() => onNavigate('shipment')} className={`${sidebarButtonClass} bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30`}>
+                            <Plus className="w-4 h-4 text-blue-200" /> {t('ship')}
+                        </button>
+                        <button onClick={fetchProfiles} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                            <Activity className={`w-4 h-4 text-blue-300 ${profilesLoading ? 'animate-spin' : ''}`} /> {language === 'es' ? 'Actualizar usuarios' : 'Refresh users'}
+                        </button>
+                        <button onClick={() => onNavigate('home')} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                            <Home className="w-4 h-4 text-blue-300" /> {t('home')}
+                        </button>
+                        <button onClick={() => setLanguage(language === 'en' ? 'es' : 'en')} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                            <Globe className="w-4 h-4 text-blue-300" /> {language === 'en' ? 'Switch to ES' : 'Switch to EN'}
+                        </button>
                     </div>
                 </div>
-            </header>
+
+                <div className="p-5 border-t border-white/10 space-y-4">
+                    <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
+                        <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            {t('system_health')}
+                        </div>
+                    </div>
+                    <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-red-500/10 text-red-200 transition-colors text-sm font-semibold">
+                        <LogOut className="w-4 h-4" /> {t('logout')}
+                    </button>
+                </div>
+            </aside>
 
             <AnimatePresence>
                 {isMenuOpen && (
@@ -361,24 +381,33 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                             <div className="p-5 space-y-6">
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Main</p>
-                                    <button onClick={() => { setActiveTab('dashboard'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                    <button onClick={() => { setActiveTab('dashboard'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} ${activeTab === 'dashboard' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
                                         <LayoutDashboard className="w-4 h-4 text-blue-300" /> {t('control_center')}
                                     </button>
-                                    <button onClick={() => { setActiveTab('analytics'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                    <button onClick={() => { setActiveTab('users'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} ${activeTab === 'users' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
+                                        <User className="w-4 h-4 text-blue-300" /> {t('users')}
+                                    </button>
+                                    <button onClick={() => { setActiveTab('analytics'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} ${activeTab === 'analytics' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
                                         <TrendingUp className="w-4 h-4 text-blue-300" /> {language === 'es' ? 'Analítica' : 'Analytics'}
                                     </button>
-                                    <button onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                    <button onClick={() => { setActiveTab('settings'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} ${activeTab === 'settings' ? 'bg-white/10 border border-white/10' : 'hover:bg-white/10'}`}>
                                         <Settings className="w-4 h-4 text-blue-300" /> {t('settings')}
                                     </button>
                                 </div>
 
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-200/70">Actions</p>
-                                    <button onClick={() => { onNavigate('shipment'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 transition-colors text-sm font-semibold">
+                                    <button onClick={() => { onNavigate('shipment'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30`}>
                                         <Plus className="w-4 h-4 text-blue-200" /> {t('ship')}
                                     </button>
-                                    <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-white/10 transition-colors text-sm font-semibold">
+                                    <button onClick={() => { fetchProfiles(); setIsMenuOpen(false); }} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                                        <Activity className={`w-4 h-4 text-blue-300 ${profilesLoading ? 'animate-spin' : ''}`} /> {language === 'es' ? 'Actualizar usuarios' : 'Refresh users'}
+                                    </button>
+                                    <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} hover:bg-white/10`}>
                                         <Home className="w-4 h-4 text-blue-300" /> {t('home')}
+                                    </button>
+                                    <button onClick={() => { setLanguage(language === 'en' ? 'es' : 'en'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                                        <Globe className="w-4 h-4 text-blue-300" /> {language === 'en' ? 'Switch to ES' : 'Switch to EN'}
                                     </button>
                                 </div>
 
@@ -400,7 +429,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                 )}
             </AnimatePresence>
 
-            <main className="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32 lg:pb-8 mt-20">
+            <main className="flex-1 p-4 pt-20 lg:pt-8 lg:p-8 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 pb-8 lg:ml-[300px]">
                 {/* USERS TAB Content */}
                 {activeTab === 'users' && (
                     <div className="col-span-full space-y-8 min-h-[600px]">
@@ -1254,42 +1283,6 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                 )}
             </AnimatePresence>
 
-            {/* Premium Fixed Mobile Nav - Non-Floating */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-2xl border-t border-dim px-2 pt-2 pb-6 flex justify-around items-center z-50">
-                <AdminNavItem 
-                    icon={<LayoutDashboard className="w-6 h-6" />} 
-                    label={language === 'es' ? 'Panel' : 'Dash'} 
-                    active={activeTab === 'dashboard'} 
-                    onClick={() => setActiveTab('dashboard')} 
-                />
-                <AdminNavItem 
-                    icon={<TrendingUp className="w-6 h-6" />} 
-                    label={language === 'es' ? 'Stats' : 'Analytic'} 
-                    active={activeTab === 'analytics'} 
-                    onClick={() => setActiveTab('analytics')} 
-                />
-                
-                {/* Center "Add" Button */}
-                <div className="relative -top-6">
-                    <button 
-                        onClick={() => onNavigate('shipment')}
-                        className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/40 border-4 border-bg-app scale-110 active:scale-95 transition-all"
-                    >
-                        <Plus className="w-7 h-7 font-black" />
-                    </button>
-                </div>
-
-                <AdminNavItem 
-                    icon={<Settings className="w-6 h-6" />} 
-                    label={language === 'es' ? 'Ajustes' : 'Settings'} 
-                    active={activeTab === 'settings'} 
-                    onClick={() => setActiveTab('settings')} 
-                />
-            </nav>
         </div>
     );
 }
-
-
-
-
