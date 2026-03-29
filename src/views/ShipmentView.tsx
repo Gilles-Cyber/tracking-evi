@@ -326,7 +326,7 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 font-sans overflow-x-hidden">
 
       {/* NAV */}
       <header className="sticky top-0 z-50 flex items-center justify-between px-5 py-3.5 bg-white/90 backdrop-blur-md border-b border-slate-200">
@@ -347,7 +347,8 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 pt-6 pb-28">
+      {/* Main container scrollable with extra space at the bottom (pb-40) */}
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-40">
 
         {/* STEP PROGRESS */}
         <div className="mb-5">
@@ -650,14 +651,13 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit - Label changed to "Save" */}
               <button
                 type="submit"
                 disabled={loading || submitted}
                 className="relative w-full h-14 rounded-2xl text-white text-xs font-black uppercase tracking-[.22em] flex items-center justify-center gap-2.5 overflow-hidden transition-all active:scale-[.98] disabled:opacity-60"
                 style={{ background: submitted ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#1565C0,#1E88C8)', boxShadow: '0 12px 30px rgba(30,136,200,.3)' }}
               >
-                {/* Sweep animation */}
                 {!loading && !submitted && (
                   <motion.div
                     animate={{ x: ['-60%', '160%'] }}
@@ -666,11 +666,11 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
                   />
                 )}
                 {loading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" />{es ? 'Déploiement…' : 'Deploying…'}</>
+                  <><Loader2 className="w-5 h-5 animate-spin" />{es ? 'Sauvegarde…' : 'Saving…'}</>
                 ) : submitted ? (
-                  <><CheckCircle className="w-5 h-5" />{es ? 'Expédition créée !' : 'Shipment Created!'}</>
+                  <><CheckCircle className="w-5 h-5" />{es ? 'Enregistré !' : 'Saved!'}</>
                 ) : (
-                  <><ShieldCheck className="w-5 h-5" />{es ? 'Initier le déploiement' : 'Initiate Deployment'}</>
+                  <><ShieldCheck className="w-5 h-5" />{es ? 'Sauvegarder' : 'Save'}</>
                 )}
               </button>
 
@@ -689,4 +689,3 @@ export function ShipmentView({ onNavigate, sessionId, onShipmentCreated }: Shipm
     </div>
   );
 }
-

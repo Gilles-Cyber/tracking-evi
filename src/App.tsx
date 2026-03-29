@@ -40,7 +40,7 @@ const PageTransition = ({ children, currentPage }: { children: React.ReactNode, 
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className={`flex-1 flex flex-col relative ${currentPage === 'admin' ? '' : 'pt-16 md:pt-0'}`}
+      className={`flex-1 flex flex-col relative ${currentPage === 'admin' || currentPage === 'shipment' ? '' : 'pt-16 md:pt-0'}`}
   >
       <div className="flex-1 w-full max-w-7xl mx-auto md:pb-0">
           {children}
@@ -73,6 +73,7 @@ export default function App() {
     return p || 'home';
   };
   const currentPage = getPathname();
+  const isAdminShell = currentPage === 'admin' || (currentPage === 'shipment' && isAdmin);
 
   const { notify } = useNotification();
 
@@ -248,7 +249,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Mobile Header Logo */}
-      {!showSplash && currentPage !== 'admin' && currentPage !== 'search' && currentPage !== 'tracking' && (
+      {!showSplash && !isAdminShell && currentPage !== 'search' && currentPage !== 'tracking' && (
         <div className="md:hidden fixed top-0 left-0 right-0 h-16 border-b border-dim bg-card/80 backdrop-blur-xl px-6 flex items-center justify-between z-50">
           <motion.div 
             whileTap={{ scale: 0.95 }}
@@ -281,7 +282,7 @@ export default function App() {
       )}
 
       {/* Navigation Bar */}
-      {!showSplash && currentPage !== 'confirmation' && currentPage !== 'admin' && currentPage !== 'shipment' && currentPage !== 'profile' && currentPage !== 'search' && (
+      {!showSplash && currentPage !== 'confirmation' && !isAdminShell && currentPage !== 'profile' && currentPage !== 'search' && (
         <>
           <nav className="hidden md:flex fixed top-0 left-0 right-0 border-b border-dim bg-card/80 backdrop-blur-xl px-8 py-4 justify-between items-center z-50">
             <div className="flex items-center gap-3 cursor-pointer group relative" onClick={() => { navigate('/'); handleLogoClick(); }}>
@@ -314,7 +315,7 @@ export default function App() {
           <div className="hidden md:block h-20" />
         </>
       )}
-      {!showSplash && currentPage !== 'admin' && (
+      {!showSplash && !isAdminShell && (
         <BottomNavBar 
           currentPage={currentPage} 
           onNavigate={handleNavigate} 

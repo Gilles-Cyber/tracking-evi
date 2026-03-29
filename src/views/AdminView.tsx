@@ -42,9 +42,19 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
     });
     const [footerSaving, setFooterSaving] = useState(false);
     const [footerStatus, setFooterStatus] = useState<'idle' | 'saved' | 'error'>('idle');
+    const shipmentsSectionRef = React.useRef<HTMLDivElement | null>(null);
 
 
     const filteredShipments = filterStatus === 'All' ? shipments : shipments.filter(s => s.status === filterStatus);
+
+    const openShipmentManagement = () => {
+        setFilterStatus('All');
+        setActiveTab('dashboard');
+        setIsMenuOpen(false);
+        window.setTimeout(() => {
+            shipmentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+    };
 
     const handleSaveShipment = async () => {
         if (!selectedShipment) return;
@@ -323,8 +333,8 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         <button onClick={() => onNavigate('shipment')} className={`${sidebarButtonClass} bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30`}>
                             <Plus className="w-4 h-4 text-blue-200" /> {t('ship')}
                         </button>
-                        <button onClick={fetchProfiles} className={`${sidebarButtonClass} hover:bg-white/10`}>
-                            <Activity className={`w-4 h-4 text-blue-300 ${profilesLoading ? 'animate-spin' : ''}`} /> {language === 'es' ? 'Actualizar usuarios' : 'Refresh users'}
+                        <button onClick={openShipmentManagement} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                            <Package className="w-4 h-4 text-blue-300" /> {language === 'es' ? 'Gestionar envios' : 'Manage shipping'}
                         </button>
                         <button onClick={() => onNavigate('home')} className={`${sidebarButtonClass} hover:bg-white/10`}>
                             <Home className="w-4 h-4 text-blue-300" /> {t('home')}
@@ -400,8 +410,8 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                                     <button onClick={() => { onNavigate('shipment'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30`}>
                                         <Plus className="w-4 h-4 text-blue-200" /> {t('ship')}
                                     </button>
-                                    <button onClick={() => { fetchProfiles(); setIsMenuOpen(false); }} className={`${sidebarButtonClass} hover:bg-white/10`}>
-                                        <Activity className={`w-4 h-4 text-blue-300 ${profilesLoading ? 'animate-spin' : ''}`} /> {language === 'es' ? 'Actualizar usuarios' : 'Refresh users'}
+                                    <button onClick={openShipmentManagement} className={`${sidebarButtonClass} hover:bg-white/10`}>
+                                        <Package className="w-4 h-4 text-blue-300" /> {language === 'es' ? 'Gestionar envios' : 'Manage shipping'}
                                     </button>
                                     <button onClick={() => { onNavigate('home'); setIsMenuOpen(false); }} className={`${sidebarButtonClass} hover:bg-white/10`}>
                                         <Home className="w-4 h-4 text-blue-300" /> {t('home')}
@@ -608,7 +618,7 @@ export function AdminView({ onNavigate, shipments, loading, setShipments, onLogo
                         </motion.div>
 
                         {/* 5. Shipments Table (Full Width) */}
-                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="col-span-full rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4">
+                        <motion.div ref={shipmentsSectionRef} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="col-span-full rounded-[2rem] bg-white border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-4 scroll-mt-24 lg:scroll-mt-10">
                             <div className="p-6 lg:p-8 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Package className="w-5 h-5 text-blue-500" /> {t('live_shipments')}</h3>
