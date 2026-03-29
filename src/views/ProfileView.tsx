@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import {
-    ArrowLeft, Settings, History, ChevronRight,
-    User, Package, Navigation, Camera, Save, Loader2, Trash2, X, Edit3, MapPin, Mail, Phone
+    ArrowLeft, History, ChevronRight,
+    User, Package, Camera, Save, Loader2, Trash2, X, Edit3, MapPin, Mail, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Page, Shipment } from '../types';
@@ -127,15 +127,8 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
         finally { setSaving(false); }
     };
 
-    const quickLinks = [
-        { icon: Navigation, label: t('tracking'), color: 'text-blue-500', bg: 'bg-blue-50', onClick: () => onNavigate('search') },
-        { icon: Package, label: t('ship'), color: 'text-indigo-500', bg: 'bg-indigo-50', onClick: () => onNavigate('shipment') },
-        { icon: History, label: t('history_title'), color: 'text-violet-500', bg: 'bg-violet-50', onClick: () => onNavigate('historique') },
-    ];
-
     const menuItems = [
         { icon: History, label: t('historique_label'), sub: t('history_title'), onClick: () => onNavigate('history') },
-        { icon: Settings, label: t('settings'), sub: t('settings'), onClick: () => onNavigate('settings') },
     ];
 
     const displayName = profile.name || t('client_session');
@@ -151,9 +144,7 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <h1 className="text-slate-900 text-base font-black flex-1 text-center tracking-tight">{t('profile')}</h1>
-                <button onClick={() => onNavigate('settings')} className="text-slate-500 hover:text-slate-900 flex size-10 items-center justify-center transition-colors rounded-full hover:bg-slate-100">
-                    <Settings className="w-5 h-5" />
-                </button>
+                <div className="w-10 shrink-0" />
             </header>
 
             <main className="flex-1 w-full max-w-lg mx-auto px-4 pt-8 pb-28 space-y-6">
@@ -234,39 +225,13 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
                     </div>
                 </motion.div>
 
-                {/* ── Quick access grid ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.08 }}
-                >
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-1">{t('quick_access')}</p>
-                    <div className="grid grid-cols-4 gap-3">
-                        {quickLinks.map((link, i) => {
-                            const Icon = link.icon;
-                            return (
-                                <motion.button
-                                    key={i}
-                                    whileTap={{ scale: 0.92 }}
-                                    onClick={link.onClick}
-                                    className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-                                >
-                                    <div className={`w-10 h-10 rounded-xl ${link.bg} flex items-center justify-center`}>
-                                        <Icon className={`w-5 h-5 ${link.color}`} />
-                                    </div>
-                                    <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider text-center leading-tight">{link.label}</span>
-                                </motion.button>
-                            );
-                        })}
-                    </div>
-                </motion.div>
 
                 {/* ── Recent shipments ── */}
                 {shipments.length > 0 && (
                     <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.14 }}
+                        transition={{ delay: 0.08 }}
                     >
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-1">{t('recent_shipments')}</p>
                         <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm divide-y divide-slate-50">
@@ -300,7 +265,7 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ delay: 0.14 }}
                 >
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-1">{t('account')}</p>
                     <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm divide-y divide-slate-50">
@@ -327,7 +292,7 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
+                    transition={{ delay: 0.2 }}
                 >
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3 px-1">{t('contact_support')}</p>
                     <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
@@ -478,3 +443,4 @@ export function ProfileView({ onNavigate, sessionId, shipments = [] }: ProfileVi
         </div>
     );
 }
+
